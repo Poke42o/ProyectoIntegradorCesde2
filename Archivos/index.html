@@ -230,10 +230,22 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" class="form-control custom-input" placeholder="****">
-          </div>
-
+    <label class="form-label">Contraseña</label>
+    
+    <div class="input-group">
+        <input 
+            type="password" 
+            id="loginPassword" 
+            class="form-control custom-input" 
+            placeholder="****">
+            
+        <span class="input-group-text" 
+              style="cursor: pointer; background: transparent; border: 1px solid rgba(255,255,255,0.25); border-left: none; color: white;"
+              onclick="togglePassword('loginPassword', this)">
+            <i class="bi bi-eye"></i>
+        </span>
+    </div>
+</div>
           <button type="submit" class="btn custom-btn w-100">
             Entrar
           </button>
@@ -300,15 +312,29 @@
  
   <div class="row mb-3">
     <div class="col-md-6">
-      <label class="form-label">Contraseña *</label>
-      <input type="password" class="form-control custom-input" placeholder="****" required>
+        <label class="form-label">Contraseña *</label>
+        
+        <div class="input-group">
+            <input 
+                type="password" 
+                id="registerPassword"
+                class="form-control custom-input" 
+                placeholder="****" 
+                required>
+                
+            <span class="input-group-text" 
+                  style="cursor: pointer; background: transparent; border: 1px solid rgba(255,255,255,0.25); border-left: none; color: white;"
+                  onclick="togglePassword('registerPassword', this)">
+                <i class="bi bi-eye"></i>
+            </span>
+        </div>
     </div>
 
     <div class="col-md-6">
-      <label class="form-label">Confirmar contraseña *</label>
-      <input type="password" class="form-control custom-input" placeholder="****" required>
+        <label class="form-label">Confirmar contraseña *</label>
+        <input type="password" class="form-control custom-input" placeholder="****" required>
     </div>
-  </div>
+</div>
 
 
 <div class="mb-3">
