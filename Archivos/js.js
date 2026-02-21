@@ -1,9 +1,178 @@
+// ============ DATOS INICIALES (Fallback si no hay admin) ============
+const datosIniciales = [
+    { id: 1, nombre: "Cachalote", stock: 50, precio: 25000, estado: "Activo", imagen: "flowerOne.jpg", descripcion: "Variedad con predominancia sativa experta para espacios de exterior y facil cuidado." },
+    { id: 2, nombre: "Early Skunk", stock: 35, precio: 25000, estado: "Activo", imagen: "flowerTwo.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
+    { id: 3, nombre: "White Widow", stock: 8, precio: 25000, estado: "Poco Stock", imagen: "flowerThree.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
+    { id: 4, nombre: "OG Kush", stock: 0, precio: 25000, estado: "Inactivo", imagen: "flowerFour.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
+    { id: 5, nombre: "Blue Dream", stock: 42, precio: 25000, estado: "Activo", imagen: "flowerFive.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
+    { id: 6, nombre: "Girl Scout Cookies", stock: 12, precio: 25000, estado: "Poco Stock", imagen: "flowerSix.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." }
+];
 
-const registerForm = document.querySelector('#registerModal form');
+// ============ UTILIDADES DE STORAGE ============
+const StorageManager = {
+    getInventario: () => {
+        let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
+        // Si no hay inventario, cargar datos iniciales automáticamente
+        if (inventario.length === 0) {
+            inventario = datosIniciales;
+            localStorage.setItem('miInventario', JSON.stringify(inventario));
+        }
+        return inventario;
+    },
+    setInventario: (data) => localStorage.setItem('miInventario', JSON.stringify(data))
+};
 
-if (registerForm) {
-    registerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+// ============ CARGAR PRODUCTOS DINÁMICAMENTE ============
+function cargarProductosDinamicos() {
+    const contenedor = document.getElementById('productosDinamicos');
+    if (!contenedor) return;
+    
+    // Obtener productos del localStorage (con fallback automático)
+    let productos = StorageManager.getInventario();
+    
+    // Si aún no hay productos, mostrar mensaje
+    if (productos.length === 0) {
+        contenedor.innerHTML = '<p class="text-muted">No hay productos disponibles en este momento</p>';
+        return;
+    }
+    
+    // Generar HTML para cada producto
+    contenedor.innerHTML = productos.map(prod => {
+        // Si la imagen es Base64, usarla; si no, usar ruta de archivo
+        const imgSrc = prod.imagen && prod.imagen.startsWith('data:') 
+            ? prod.imagen 
+            : `/Imagenes/${prod.imagen || 'placeholder.jpg'}`;
+        
+        return `
+            <div class="item">
+                <p>${prod.nombre}</p>
+                <img src="${imgSrc}" alt="${prod.nombre}" style="width: 100%; height: 250px; object-fit: cover;">
+                <div class="product-controls">
+                    <select class="form-control qty-select custom-input">
+                        <option value="1">1 semilla - $${Number(prod.precio).toLocaleString()} COP</option>
+                        <option value="3">3 semillas - $${(Number(prod.precio) * 2.8).toLocaleString()} COP</option>
+                        <option value="5">5 semillas - $${(Number(prod.precio) * 4.4).toLocaleString()} COP</option>
+                        <option value="10">10 semillas - $${(Number(prod.precio) * 8).toLocaleString()} COP</option>
+                        <option value="25">25 semillas - $${(Number(prod.precio) * 18).toLocaleString()} COP</option>
+                        <option value="100">100 semillas - $${(Number(prod.precio) * 64).toLocaleString()} COP</option>
+                    </select>
+                    <button type="button" class="btn custom-btn add-to-cart" data-product-id="${prod.id}" data-product-name="${prod.nombre}" data-product-price="${prod.precio}">
+                        Agregar al carrito
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Re-asignar event listeners a los botones "Agregar al carrito"
+    document.querySelectorAll('.add-to-cart').forEach(btn => {
+        btn.addEventListener('click', agregarAlCarritoDinamico);
+    });
+}
+
+// Función para agregar al carrito desde productos dinámicos
+function agregarAlCarritoDinamico(e) {
+    // Obtener email del usuario desde sessionStorage
+    const emailUsuario = sessionStorage.getItem('emailUsuarioActual');
+    
+    if (!emailUsuario) {
+        alert('Debes iniciar sesión para agregar productos al carrito');
+        return;
+    }
+
+    const btn = e.target;
+    const cantidad = parseInt(btn.previousElementSibling.value);
+    const productId = btn.getAttribute('data-product-id');
+    const productName = btn.getAttribute('data-product-name');
+    const productPrice = Number(btn.getAttribute('data-product-price'));
+
+    const cartKey = `magia_cart_${emailUsuario}`;
+    let carrito = JSON.parse(localStorage.getItem(cartKey)) || [];
+
+    const itemExistente = carrito.find(item => item.id === productId && item.cantidad === cantidad);
+    if (itemExistente) {
+        itemExistente.unidades += 1;
+    } else {
+        carrito.push({
+            id: productId,
+            nombre: productName,
+            precio: productPrice,
+            cantidad: cantidad,
+            unidades: 1
+        });
+    }
+
+    localStorage.setItem(cartKey, JSON.stringify(carrito));
+    
+    // Actualizar contador del carrito
+    const cartCount = document.querySelector('.cart-count');
+    if (cartCount) {
+        const totalItems = carrito.reduce((sum, item) => sum + item.unidades, 0);
+        cartCount.textContent = totalItems;
+        cartCount.style.display = 'block';
+    }
+
+    alert(`${productName} agregado al carrito`);
+}
+
+// ============ FUNCIONES GLOBALES ============
+
+// Alternar visibilidad de contraseña
+function togglePassword(inputId, iconSpan) {
+    const input = document.getElementById(inputId);
+    const icon = iconSpan.querySelector("i");
+  
+    if (input.type === "password") {
+      input.type = "text";
+      icon.classList.remove("bi-eye");
+      icon.classList.add("bi-eye-slash");
+    } else {
+      input.type = "password";
+      icon.classList.remove("bi-eye-slash");
+      icon.classList.add("bi-eye");
+    }
+}
+
+// Actualizar navbar según sesión
+function actualizarNavbar() {
+    const authLinks = document.getElementById('auth-links');
+    const userLinks = document.getElementById('user-links');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const sesion = sessionStorage.getItem('sesionActiva');
+   
+
+    if (sesion) {
+        
+        if (authLinks) authLinks.classList.add('d-none');
+        if (userLinks) userLinks.classList.remove('d-none');
+
+        if (sesion === 'admin') {
+            userNameDisplay.textContent = "Admin Magia";
+        } else{
+            const nombre = sessionStorage.getItem('nombreUsuarioActual')
+            userNameDisplay.textContent = `Hola, ${nombre || 'Usuario'}`;
+        } 
+        
+    } else {
+        // Si no hay sesión, mostramos botones de auth
+      if (authLinks) authLinks.classList.remove('d-none');
+        if (userLinks) userLinks.classList.add('d-none');
+        if (userNameDisplay) userNameDisplay.textContent = "";
+    }
+}
+
+// ============ INICIALIZACIÓN AL CARGAR EL DOCUMENTO ============
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Cargar productos dinámicos (automáticamente se cargan datos iniciales si no existen)
+    cargarProductosDinamicos();
+    console.log('✅ Productos dinámicos cargados. Inventario:', StorageManager.getInventario());
+    
+    // 2. Manejar formulario de registro
+    const registerForm = document.querySelector('#registerModal form');
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
 
         const nombre = registerForm.querySelectorAll('input')[0].value;
         const email = registerForm.querySelector('input[type="email"]').value;
@@ -55,112 +224,65 @@ if (registerForm) {
         const modal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
         modal.hide();
         registerForm.reset();
-    });
-}
+        });
+    }
 
+    // 3. Manejar formulario de login
+    const loginForm = document.querySelector('#loginModal form');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
 
-const loginForm = document.querySelector('#loginModal form');
+            const emailLogin = loginForm.querySelector('input[type="email"]').value;
+            const passLogin = loginForm.querySelector('input[type="password"]').value;
 
-if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+          
+            if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
+                alert("¡Hola! Redirigiendo al Panel de Control");
+                sessionStorage.setItem('sesionActiva', 'admin')
+                window.location.href = 'admin.html'; 
+                return; 
+            }  
 
-        const emailLogin = loginForm.querySelector('input[type="email"]').value;
-        const passLogin = loginForm.querySelector('input[type="password"]').value;
+           const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+           const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
+           
 
-      
-        if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
-            alert("¡Hola! Redirigiendo al Panel de Control");
-            sessionStorage.setItem('sesionActiva', 'admin')
-            window.location.href = 'admin.html'; 
-            return; 
-        }  
+            if (usuarioEncontrado) {
+             
+                    alert(`¡Bienvenido de nuevo, ${usuarioEncontrado.nombre}!`);
+                    sessionStorage.setItem('sesionActiva', 'usuario');
+                    sessionStorage.setItem('nombreUsuarioActual', usuarioEncontrado.nombre)
+                    
+                    sessionStorage.setItem('emailUsuarioActual', usuarioEncontrado.email);
 
-       const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-       const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
-       
+                    // Redirige al usuario normal al index.html
+                    window.location.href = 'index.html'; 
+                } else {
+                    alert('Correo o contraseña incorrectos.');
+                }
+            
+        });
+    }
+    
+    // 4. Actualizar navbar
+    actualizarNavbar();
 
-        if (usuarioEncontrado) {
-         
-                alert(`¡Bienvenido de nuevo, ${usuarioEncontrado.nombre}!`);
-                sessionStorage.setItem('sesionActiva', 'usuario');
-                sessionStorage.setItem('nombreUsuarioActual', usuarioEncontrado.nombre)
-                
-                sessionStorage.setItem('emailUsuarioActual', usuarioEncontrado.email);
+    // 5. Manejar botón de logout
+    const btnLogoutMain = document.getElementById('btnLogoutMain');
+    if (btnLogoutMain) {
+        btnLogoutMain.addEventListener('click', (e) => {
+            e.preventDefault();
 
-                // Redirige al usuario normal al index.html
-                window.location.href = 'index.html'; 
-            } else {
-                alert('Correo o contraseña incorrectos.');
+            if (confirm("¿Seguro que quieres cerrar sesión?")) {
+                sessionStorage.clear()
+                window.location.href ='index.html'
             }
-        
-    });
-}
-
-// ojo de la contraseña
-function togglePassword(inputId, iconSpan) {
-    const input = document.getElementById(inputId);
-    const icon = iconSpan.querySelector("i");
-  
-    if (input.type === "password") {
-      input.type = "text";
-      icon.classList.remove("bi-eye");
-      icon.classList.add("bi-eye-slash");
-    } else {
-      input.type = "password";
-      icon.classList.remove("bi-eye-slash");
-      icon.classList.add("bi-eye");
+        });
     }
-}
-// --- Lógica de Estado de Sesión ---
 
-function actualizarNavbar() {
-    const authLinks = document.getElementById('auth-links');
-    const userLinks = document.getElementById('user-links');
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    const sesion = sessionStorage.getItem('sesionActiva');
-   
-
-    if (sesion) {
-        
-        if (authLinks) authLinks.classList.add('d-none');
-        if (userLinks) userLinks.classList.remove('d-none');
-
-        if (sesion === 'admin') {
-            userNameDisplay.textContent = "Admin Magia";
-        } else{
-            const nombre = sessionStorage.getItem('nombreUsuarioActual')
-            userNameDisplay.textContent = `Hola, ${nombre || 'Usuario'}`;
-        } 
-        
-    } else {
-        // Si no hay sesión, mostramos botones de auth
-      if (authLinks) authLinks.classList.remove('d-none');
-        if (userLinks) userLinks.classList.add('d-none');
-        if (userNameDisplay) userNameDisplay.textContent = "";
-    }
-}
-
-// Botón de cerrar sesión en el index
-const btnLogoutMain = document.getElementById('btnLogoutMain');
-if (btnLogoutMain) {
-    btnLogoutMain.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        if (confirm("¿Seguro que quieres cerrar sesión?")) {
-            sessionStorage.clear()
-            window.location.href ='index.html'
-        }
-    });
-}
-
-// Ejecutar al cargar la página
-document.addEventListener('DOMContentLoaded', actualizarNavbar);
-
-
-// --- Carrito: cantidad, agregar y renderizar en modal ---
-document.addEventListener('DOMContentLoaded', function () {
-   
+    // 6. CARRITO: cantidad, agregar y renderizar en modal
 
 function getCartKey() {
     const email = sessionStorage.getItem('emailUsuarioActual');
