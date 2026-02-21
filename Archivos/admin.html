@@ -176,16 +176,16 @@
                     <div class="col-md-4">
                         <div class="stat-card">
                             <div>
-                                <h3>150</h3>
-                                <p>Ventas del Mes</p>
-                            </div>
+                                    <h3 id="ventasMes">150</h3>
+                                    <p>Ventas del Mes</p>
+                                </div>
                             <i class="bi bi-currency-dollar"></i>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="stat-card" style="border-left-color: var(--green);">
                             <div>
-                                <h3>12</h3>
+                                <h3 id="pedidosPendientes">12</h3>
                                 <p>Pedidos Pendientes</p>
                             </div>
                             <i class="bi bi-truck"></i>
@@ -194,7 +194,7 @@
                     <div class="col-md-4">
                         <div class="stat-card" style="border-left-color: #b82ebc;">
                             <div>
-                                <h3>45</h3>
+                                <h3 id="usuariosNuevos">45</h3>
                                 <p>Usuarios Nuevos</p>
                             </div>
                             <i class="bi bi-person-plus"></i>
@@ -329,6 +329,18 @@
                             </select>
                             <small class="text-muted">El estado se calcula según el stock ingresado.</small>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcionInput" rows="3" placeholder="Descripción breve del producto"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Imagen (jpg/png)</label>
+                            <input class="form-control" type="file" id="imagenInput" accept="image/png, image/jpeg">
+                            <small class="text-muted">Puedes subir una imagen o dejar la imagen por defecto.</small>
+                            <div class="mt-2">
+                                <img id="imagenPreview" src="" alt="preview" style="max-width:120px; display:none; border-radius:8px;">
+                            </div>
+                        </div>
                 </div>
                 <button type="submit" class="btn custom-btn w-100">Guardar en Inventario</button>
                 </form>
@@ -371,6 +383,18 @@
                                 <option value="Inactivo">Inactivo</option>
                             </select>
                             <small class="text-muted">El estado se calcula según el stock ingresado.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcionEditInput" rows="3" placeholder="Descripción breve del producto"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Imagen (jpg/png)</label>
+                            <input class="form-control" type="file" id="imagenEditInput" accept="image/png, image/jpeg">
+                            <small class="text-muted">Sube una nueva imagen para reemplazar la anterior (opcional).</small>
+                            <div class="mt-2">
+                                <img id="imagenEditPreview" src="" alt="preview" style="max-width:120px; display:none; border-radius:8px;">
+                            </div>
                         </div>
                 </div>
                 <button type="submit" class="btn custom-btn w-100">Guardar Cambios</button>

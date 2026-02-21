@@ -852,4 +852,34 @@ select.custom-input {
     border-radius: 50%;
 }
 
+/* Footer link and icon adjustments: center icons with their text and remove underline */
+.site-footer a {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-footer a:hover {
+  text-decoration: none;
+  opacity: 0.95;
+}
+
+.site-footer .social-icon {
+  margin: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.site-footer .social-icon svg {
+  width: 40px;
+  height: 40px;
+  background-color: floralwhite;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 
