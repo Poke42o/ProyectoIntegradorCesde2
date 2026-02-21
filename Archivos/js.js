@@ -6,7 +6,8 @@ if (registerForm) {
         e.preventDefault();
 
         const nombre = registerForm.querySelectorAll('input')[0].value;
-        const email = registerForm.querySelector('input[type="email"]').value;
+        const email = registerForm.querySelector('input[type="email"]').value.trim().toLowerCase();
+
         const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -17,7 +18,8 @@ if (registerForm) {
 
         // --- MEJORA: Lógica de múltiples usuarios ---
         const usuariosGuardados = JSON.parse(localStorage.getItem('usuarios')) || [];
-        const existe = usuariosGuardados.find(u => u.email === email);
+        const existe = usuariosGuardados.find(u => u.email.toLowerCase() === email);
+
 
         if (existe) {
             alert('Este correo ya está registrado. Intenta iniciar sesión.');
@@ -25,10 +27,11 @@ if (registerForm) {
         }
 
         const userData = {
-            nombre: nombre,
-            email: email,
-            password: password
-        };  
+        nombre: nombre,
+        email: email, 
+        password: password
+        };
+
 
         usuariosGuardados.push(userData);
         localStorage.setItem('usuarios', JSON.stringify(usuariosGuardados));
@@ -48,7 +51,7 @@ if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        const emailLogin = loginForm.querySelector('input[type="email"]').value;
+        const emailLogin = loginForm.querySelector('input[type="email"]').value.trim().toLowerCase();
         const passLogin = loginForm.querySelector('input[type="password"]').value;
 
       
@@ -60,7 +63,8 @@ if (loginForm) {
         }  
 
        const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-       const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
+       const usuarioEncontrado = listaUsuarios.find(u => u.email.toLowerCase() === emailLogin && u.password === passLogin);
+
        
 
         if (usuarioEncontrado) {
