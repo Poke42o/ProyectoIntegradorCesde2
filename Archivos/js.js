@@ -9,6 +9,7 @@ if (registerForm) {
         const email = registerForm.querySelector('input[type="email"]').value;
         const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+        const telefono = document.getElementById('phone')?.value || '';
 
         if(password !== confirmPassword){
             alert('Las contraseñas no coinciden');
@@ -16,6 +17,7 @@ if (registerForm) {
         }
 
         // --- MEJORA: Lógica de múltiples usuarios ---
+        // Guardar en 'usuarios' para login
         const usuariosGuardados = JSON.parse(localStorage.getItem('usuarios')) || [];
         const existe = usuariosGuardados.find(u => u.email === email);
 
@@ -32,6 +34,21 @@ if (registerForm) {
 
         usuariosGuardados.push(userData);
         localStorage.setItem('usuarios', JSON.stringify(usuariosGuardados));
+
+        // --- NUEVO: Guardar en 'usuariosRegistrados' para admin ---
+        const clientesGuardados = JSON.parse(localStorage.getItem('usuariosRegistrados')) || [];
+        const maxId = clientesGuardados.length > 0 ? Math.max(...clientesGuardados.map(c => c.id)) : 0;
+        
+        const clienteData = {
+            id: maxId + 1,
+            nombre: nombre,
+            email: email,
+            telefono: telefono,
+            fechaRegistro: new Date().toISOString().split('T')[0]
+        };
+
+        clientesGuardados.push(clienteData);
+        localStorage.setItem('usuariosRegistrados', JSON.stringify(clientesGuardados));
 
         alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
 

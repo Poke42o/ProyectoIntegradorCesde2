@@ -1,26 +1,51 @@
+// ============ CONFIGURACIÓN Y CONSTANTES ============
 const datosIniciales = [
     { id: 101, nombre: "Semilla Sativa X", stock: 50, precio: 20000, estado: "Activo" },
     { id: 102, nombre: "Semilla Indica Y", stock: 5, precio: 25000, estado: "Poco Stock" },
     { id: 103, nombre: "Híbrida Especial", stock: 0, precio: 30000, estado: "Inactivo" }
 ];
 
+// ============ UTILIDADES DE STORAGE ============
+const StorageManager = {
+    getInventario: () => JSON.parse(localStorage.getItem('miInventario')) || [],
+    setInventario: (data) => localStorage.setItem('miInventario', JSON.stringify(data)),
+    getClientes: () => JSON.parse(localStorage.getItem('usuariosRegistrados')) || [],
+    setClientes: (data) => localStorage.setItem('usuariosRegistrados', JSON.stringify(data))
+};
+
+// ============ UTILIDADES DE ESTADO ============
+const EstadoHelper = {
+    calcularEstado: (cantidad) => {
+        cantidad = parseInt(cantidad) || 0;
+        if (cantidad > 10) return 'Activo';
+        if (cantidad > 0 && cantidad <= 10) return 'Poco Stock';
+        return 'Inactivo';
+    },
+    getBadgeColor: (estado) => {
+        const colores = {
+            'Activo': 'bg-success',
+            'Poco Stock': 'bg-warning text-dark',
+            'Inactivo': 'bg-secondary'
+        };
+        return colores[estado] || 'bg-secondary';
+    }
+};
+
+// ============ GESTIÓN DE INVENTARIO ============
 function cargarTabla() {
     const cuerpoTabla = document.getElementById('tablaProductos');
     if (!cuerpoTabla) return; 
 
     cuerpoTabla.innerHTML = ''; 
 
-    let inventario = JSON.parse(localStorage.getItem('miInventario'));
-    if (!inventario || inventario.length === 0) {
+    let inventario = StorageManager.getInventario();
+    if (inventario.length === 0) {
         inventario = datosIniciales;
-        localStorage.setItem('miInventario', JSON.stringify(inventario));
+        StorageManager.setInventario(inventario);
     }
 
     inventario.forEach((prod, index) => {
-        let badgeColor = 'bg-success';
-        if(prod.estado === 'Poco Stock') badgeColor = 'bg-warning text-dark';
-        if(prod.estado === 'Inactivo') badgeColor = 'bg-secondary';
-
+        const badgeColor = EstadoHelper.getBadgeColor(prod.estado);
         const fila = `
             <tr>
                 <td>#${prod.id}</td>
@@ -29,6 +54,9 @@ function cargarTabla() {
                 <td>$${Number(prod.precio).toLocaleString()}</td>
                 <td><span class="badge ${badgeColor}">${prod.estado}</span></td>
                 <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="abrirModalEditar(${index})" data-bs-toggle="modal" data-bs-target="#modalEditarProducto">
+                        <i class="bi bi-pencil"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${index})">
                         <i class="bi bi-trash"></i>
                     </button>
@@ -39,6 +67,7 @@ function cargarTabla() {
     });
 }
 
+// Manejador de eventos del formulario de inventario
 const formInventario = document.getElementById('formInventario');
 if (formInventario) {
     formInventario.addEventListener('submit', function(e) {
@@ -49,18 +78,18 @@ if (formInventario) {
             nombre: document.getElementById('nombreInput').value,
             stock: document.getElementById('stockInput').value || 0,
             precio: document.getElementById('precioInput').value,
-            estado: document.getElementById('estadoInput').value
+            estado: EstadoHelper.calcularEstado(document.getElementById('stockInput').value)
         };
 
-        let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
+        let inventario = StorageManager.getInventario();
         inventario.push(nuevoProd);
-        localStorage.setItem('miInventario', JSON.stringify(inventario));
+        StorageManager.setInventario(inventario);
 
         const modalEl = document.getElementById('modalProducto');
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
         modalInstance.hide();
         
-        document.getElementById('formInventario').reset();
+        formInventario.reset();
         cargarTabla();
         alert('Producto agregado correctamente');
     });
@@ -68,13 +97,203 @@ if (formInventario) {
 
 window.eliminarProducto = function(index) {
     if(confirm('¿Estás seguro de borrar este producto del inventario?')) {
-        let inventario = JSON.parse(localStorage.getItem('miInventario'));
+        let inventario = StorageManager.getInventario();
         inventario.splice(index, 1);
-        localStorage.setItem('miInventario', JSON.stringify(inventario));
+        StorageManager.setInventario(inventario);
         cargarTabla();
     }
 };
 
+let indiceEdicion = null;
+
+window.abrirModalEditar = function(index) {
+    indiceEdicion = index;
+    let inventario = StorageManager.getInventario();
+    const producto = inventario[index];
+    
+    document.getElementById('nombreEditInput').value = producto.nombre;
+    document.getElementById('stockEditInput').value = producto.stock;
+    document.getElementById('precioEditInput').value = producto.precio;
+    document.getElementById('estadoEditInput').value = producto.estado;
+};
+
+const formEditarInventario = document.getElementById('formEditarInventario');
+if (formEditarInventario) {
+    formEditarInventario.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        let inventario = StorageManager.getInventario();
+        
+        inventario[indiceEdicion] = {
+            id: inventario[indiceEdicion].id,
+            nombre: document.getElementById('nombreEditInput').value,
+            stock: document.getElementById('stockEditInput').value || 0,
+            precio: document.getElementById('precioEditInput').value,
+            estado: EstadoHelper.calcularEstado(document.getElementById('stockEditInput').value)
+        };
+        
+        StorageManager.setInventario(inventario);
+        
+        const modalEl = document.getElementById('modalEditarProducto');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+        
+        formEditarInventario.reset();
+        cargarTabla();
+        alert('Producto actualizado correctamente');
+    });
+}
+
+// ============ GESTIÓN DE CLIENTES ============
+function inicializarAdmin() {
+    let clientes = StorageManager.getClientes();
+    
+    // Verificar si el admin ya existe
+    const adminExiste = clientes.some(c => c.email === 'admin@magic.com');
+    
+    if (!adminExiste && clientes.length === 0) {
+        const adminUser = {
+            id: 1,
+            nombre: 'Administrador',
+            email: 'admin@magic.com',
+            telefono: '+57 3001234567',
+            fechaRegistro: new Date().toISOString().split('T')[0],
+            esAdmin: true
+        };
+        clientes.push(adminUser);
+        StorageManager.setClientes(clientes);
+    }
+}
+
+function cargarClientes() {
+    const tablaClientes = document.getElementById('tablaClientes');
+    if (!tablaClientes) return;
+    
+    tablaClientes.innerHTML = '';
+    
+    // Cargar SOLO usuarios registrados del localStorage
+    let clientes = StorageManager.getClientes();
+    
+    // Separar admin de los demás clientes
+    const admin = clientes.filter(c => c.esAdmin);
+    const clientesRegulares = clientes.filter(c => !c.esAdmin);
+    
+    // Ordenar: admin primero, luego clientes por fecha de registro (más recientes primero)
+    const clientesOrdenados = [
+        ...admin,
+        ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))
+    ];
+    
+    // Actualizar estadísticas
+    document.getElementById('totalClientes').textContent = clientesOrdenados.length;
+    document.getElementById('clientesActivos').textContent = clientesOrdenados.length;
+    document.getElementById('comprasTotal').textContent = Math.floor(Math.random() * 100) + 30;
+    
+    // Llenar tabla
+    if (clientesOrdenados.length === 0) {
+        tablaClientes.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay clientes registrados</td></tr>';
+    } else {
+        clientesOrdenados.forEach((cliente, index) => {
+            const badgeAdmin = cliente.esAdmin ? '<span class="badge bg-danger ms-2">ADMIN</span>' : '';
+            const fila = `
+                <tr>
+                    <td>#${cliente.id}</td>
+                    <td class="fw-bold">${cliente.nombre} ${badgeAdmin}</td>
+                    <td>${cliente.email}</td>
+                    <td>${cliente.telefono || 'N/A'}</td>
+                    <td>${cliente.fechaRegistro || 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="verDetalleCliente(${index})" title="Ver detalles">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarCliente(${index})" ${cliente.esAdmin ? 'disabled' : ''}>
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tablaClientes.innerHTML += fila;
+        });
+    }
+}
+
+window.eliminarCliente = function(index) {
+    if(confirm('¿Estás seguro de que deseas eliminar este cliente? Se eliminará su cuenta completamente.')) {
+        let clientes = StorageManager.getClientes();
+        
+        // Separar admin de regulares
+        const admin = clientes.filter(c => c.esAdmin);
+        const clientesRegulares = clientes.filter(c => !c.esAdmin);
+        
+        // El índice corresponde a la lista ordenada (admin primero)
+        const clientesOrdenados = [...admin, ...clientesRegulares];
+        
+        // Obtener el cliente a eliminar
+        const clienteAEliminar = clientesOrdenados[index];
+        
+        // No permitir eliminar admin
+        if (clienteAEliminar.esAdmin) {
+            alert('No se puede eliminar la cuenta del administrador.');
+            return;
+        }
+        
+        // Buscar su índice real en el array original
+        const indiceReal = clientes.findIndex(c => c.email === clienteAEliminar.email);
+        
+        if (indiceReal !== -1) {
+            // Eliminar de usuariosRegistrados
+            clientes.splice(indiceReal, 1);
+            StorageManager.setClientes(clientes);
+            
+            // Eliminar de usuarios (login)
+            let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            usuarios = usuarios.filter(u => u.email !== clienteAEliminar.email);
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+            
+            // Eliminar carrito del usuario si existe
+            const cartKey = `magia_cart_${clienteAEliminar.email}`;
+            localStorage.removeItem(cartKey);
+            
+            cargarClientes();
+            alert(`Cliente ${clienteAEliminar.nombre} eliminado completamente.`);
+        }
+    }
+};
+
+window.verDetalleCliente = function(index) {
+    let clientes = StorageManager.getClientes();
+    
+    // Separar admin de regulares
+    const admin = clientes.filter(c => c.esAdmin);
+    const clientesRegulares = clientes.filter(c => !c.esAdmin);
+    
+    // Ordenar igual que en cargarClientes()
+    const clientesOrdenados = [...admin, ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))];
+    
+    const cliente = clientesOrdenados[index];
+    const badge = cliente.esAdmin ? '\n\n👤 Perfil: ADMINISTRADOR' : '';
+    alert(`Detalles del Cliente\n\nNombre: ${cliente.nombre}\nEmail: ${cliente.email}\nTeléfono: ${cliente.telefono}\nFecha Registro: ${cliente.fechaRegistro}${badge}`);
+};
+
+// ============ NAVEGACIÓN ============
+window.mostrarDashboard = function(e) {
+    e.preventDefault();
+    document.getElementById('dashboardPanel').style.display = 'block';
+    document.getElementById('clientesPanel').style.display = 'none';
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    e.target.closest('a').classList.add('active');
+};
+
+window.mostrarClientes = function(e) {
+    e.preventDefault();
+    document.getElementById('dashboardPanel').style.display = 'none';
+    document.getElementById('clientesPanel').style.display = 'block';
+    cargarClientes();
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    e.target.closest('a').classList.add('active');
+};
+
+// ============ CERRAR SESIÓN ============
 const btnLogout = document.querySelector('.logout-btn');
 if(btnLogout) {
     btnLogout.addEventListener('click', function(e) {
@@ -86,23 +305,33 @@ if(btnLogout) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', cargarTabla);
-
+// ============ INICIALIZACIÓN DEL DOCUMENTO ============
 document.addEventListener('DOMContentLoaded', function() {
-    const stockInput = document.getElementById('stockInput');
-    const estadoInput = document.getElementById('estadoInput');
-
-    if (stockInput && estadoInput) {
-        stockInput.addEventListener('input', function() {
-            const cantidad = parseInt(stockInput.value) || 0;
-
-            if (cantidad > 10) {
-                estadoInput.value = 'Activo';
-            } else if (cantidad > 0 && cantidad <= 10) {
-                estadoInput.value = 'Poco Stock';
-            } else {
-                estadoInput.value = 'Inactivo';
-            }
-        });
-    }
+    // Inicializar usuario admin si es la primera vez
+    inicializarAdmin();
+    
+    cargarTabla();
+    cargarClientes();
+    
+    // Inicializar controles de estado automático
+    inicializarControlesEstado();
 });
+
+// Función auxiliar para inicializar controles de estado automático (sin repetición)
+function inicializarControlesEstado() {
+    const pares = [
+        { stock: 'stockInput', estado: 'estadoInput' },
+        { stock: 'stockEditInput', estado: 'estadoEditInput' }
+    ];
+
+    pares.forEach(par => {
+        const stockInput = document.getElementById(par.stock);
+        const estadoInput = document.getElementById(par.estado);
+        
+        if (stockInput && estadoInput) {
+            stockInput.addEventListener('input', function() {
+                estadoInput.value = EstadoHelper.calcularEstado(stockInput.value);
+            });
+        }
+    });
+}
