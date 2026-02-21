@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const nombre = registerForm.querySelectorAll('input')[0].value;
         const email = registerForm.querySelector('input[type="email"]').value.trim().toLowerCase();
 
-        const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
+        const password = document.getElementById('registerPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
         const telefono = document.getElementById('phone')?.value || '';
 
@@ -235,8 +235,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-        const emailLogin = loginForm.querySelector('input[type="email"]').value;
-        const passLogin = loginForm.querySelector('input[type="password"]').value;
+        const emailLogin = loginForm.querySelector('input[type="email"]').value.trim().toLowerCase();
+        const passLogin = document.getElementById('loginPassword').value;
 
           
             if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
@@ -291,6 +291,43 @@ function getCartKey() {
     return email ? `magia_cart_${email}` : 'magia_cart_invitado';
 }
 
+// Renderizar productos en la página principal desde el inventario guardado por el admin
+function renderProductsFromInventario() {
+    const container = document.getElementById('productosContainer');
+    if (!container) return;
+
+    const inventario = JSON.parse(localStorage.getItem('miInventario') || 'null');
+    if (!inventario || inventario.length === 0) return; // mantener items estáticos si no hay inventario
+
+    let html = '';
+    inventario.forEach(prod => {
+        const precio = Number(prod.precio) || 0;
+        const imgSrc = prod.img || '/Imagenes/flowerOne.jpg';
+        const descripcion = prod.descripcion || '';
+        html += `
+            <div class="item" data-product-id="${prod.id}">
+                <p>${prod.nombre}</p>
+                <img src="${imgSrc}" alt="${prod.nombre}">
+                <div class="product-desc" style="margin:0.5rem 0; color:#fff; font-size:0.9rem;">${descripcion}</div>
+                <div class="product-controls">
+                    <select class="form-control qty-select custom-input">
+                        <option value="1">1 semilla - ${precio.toLocaleString()} COP</option>
+                        <option value="3">3 semillas - ${Math.round(precio * 3).toLocaleString()} COP</option>
+                        <option value="5">5 semillas - ${Math.round(precio * 5).toLocaleString()} COP</option>
+                        <option value="10">10 semillas - ${Math.round(precio * 10).toLocaleString()} COP</option>
+                        <option value="25">25 semillas - ${Math.round(precio * 25).toLocaleString()} COP</option>
+                        <option value="100">100 semillas - ${Math.round(precio * 100).toLocaleString()} COP</option>
+                    </select>
+                    <button type="button" class="btn custom-btn add-to-cart">Agregar al carrito</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+
     function getCart() {
         const key = getCartKey();
         return JSON.parse(localStorage.getItem(key) || '[]');
@@ -299,6 +336,46 @@ function getCartKey() {
     function saveCart(cart) {
         const key = getCartKey();
         localStorage.setItem(key, JSON.stringify(cart));
+        // Mantener sincronizado un pedido 'pendiente' basado en el carrito
+        syncPendingPedidoFromCart(cart);
+    }
+
+    // Sincroniza el carrito actual con un pedido en localStorage (estado 'pendiente')
+    function syncPendingPedidoFromCart(cart) {
+        const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
+        const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+
+        // Buscar pedido pendiente del mismo email
+        const idx = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
+
+        if (!cart || cart.length === 0) {
+            // si carrito vacío, eliminar pedido pendiente si existía
+            if (idx !== -1) {
+                pedidos.splice(idx, 1);
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+            }
+            return;
+        }
+
+        const totalQty = cart.reduce((s, it) => s + Number(it.qty), 0);
+        const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
+        const pedidoObj = {
+            id: idx !== -1 ? pedidos[idx].id : (Date.now().toString()),
+            email: email,
+            items: cart,
+            qty: totalQty,
+            total: totalPrice,
+            fecha: new Date().toISOString(),
+            estado: 'pendiente'
+        };
+
+        if (idx !== -1) {
+            pedidos[idx] = pedidoObj;
+        } else {
+            pedidos.push(pedidoObj);
+        }
+
+        localStorage.setItem('pedidos', JSON.stringify(pedidos));
     }
 
     function updateBadge() {
@@ -397,17 +474,46 @@ function getCartKey() {
             const imgEl = card ? card.querySelector('img') : null;
             const img = imgEl ? imgEl.src : '';
 
-            // Build item object
+            // Build item object. Prefer product id if the card provides one.
+            const productId = card ? card.dataset.productId : null;
+            const cart = getCart();
+
+            // intentar obtener precio unitario desde inventario
+            let unitPrice = 0;
+            try {
+                const inv = JSON.parse(localStorage.getItem('miInventario') || '[]');
+                if (productId) {
+                    const prod = inv.find(p => String(p.id) === String(productId));
+                    if (prod) unitPrice = Number(prod.precio) || 0;
+                }
+                if (!unitPrice) {
+                    const opt = qtySelect ? qtySelect.selectedOptions[0].textContent : '';
+                    const m = opt.match(/([0-9\.,]+)/g);
+                    if (m && m.length) {
+                        // tomar el último grupo (precio)
+                        const raw = m[m.length - 1].replace(/\./g, '').replace(/,/g, '');
+                        unitPrice = Number(raw) / Math.max(1, Number(qty));
+                    }
+                }
+            } catch (err) { unitPrice = 0; }
+
             const itemObj = {
-                id: Date.now().toString() + Math.floor(Math.random()*1000),
+                id: productId ? String(productId) : (Date.now().toString() + Math.floor(Math.random()*1000)),
+                productId: productId ? String(productId) : null,
                 title: title.trim(),
                 qty: Number(qty),
-                img: img
+                img: img,
+                unitPrice: Number(unitPrice) || 0
             };
 
-            // Merge if same title exists
-            const cart = getCart();
-            const existing = cart.find(i => i.title === itemObj.title && i.img === itemObj.img);
+            // Merge if same productId exists (preferred), otherwise by title+img
+            let existing = null;
+            if (itemObj.productId) {
+                existing = cart.find(i => i.productId === itemObj.productId);
+            } else {
+                existing = cart.find(i => i.title === itemObj.title && i.img === itemObj.img);
+            }
+
             if (existing) {
                 existing.qty = Number(existing.qty) + Number(itemObj.qty);
             } else {
@@ -428,6 +534,63 @@ function getCartKey() {
     });
 
     // Initialize
+    renderProductsFromInventario();
+    // Checkout: crear pedido y actualizar 'ventasMes' + limpiar carrito
+    const checkoutBtnEl = document.getElementById('checkoutBtn');
+    if (checkoutBtnEl) {
+            checkoutBtnEl.addEventListener('click', function() {
+            const cart = getCart();
+            if (!cart || cart.length === 0) {
+                alert('No hay productos en el carrito.');
+                return;
+            }
+
+            const totalQty = cart.reduce((s, it) => s + Number(it.qty), 0);
+            const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
+            const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+            const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
+
+            // Si existe un pedido pendiente para este usuario, marcarlo como completado
+            const idxPend = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
+            if (idxPend !== -1) {
+                pedidos[idxPend].items = cart;
+                pedidos[idxPend].qty = totalQty;
+                pedidos[idxPend].total = totalPrice;
+                pedidos[idxPend].fecha = new Date().toISOString();
+                pedidos[idxPend].estado = 'completado';
+            } else {
+                const nuevoPedido = {
+                    id: Date.now().toString(),
+                    email: email,
+                    items: cart,
+                    qty: totalQty,
+                    total: totalPrice,
+                    fecha: new Date().toISOString(),
+                    estado: 'completado'
+                };
+                pedidos.push(nuevoPedido);
+            }
+
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+            // Actualizar contador de ventas del mes (suma monetaria)
+            const ventasActual = parseFloat(localStorage.getItem('ventasMes') || '0') || 0;
+            localStorage.setItem('ventasMes', String(ventasActual + totalPrice));
+
+            // Limpiar carrito del usuario y eliminar pedido pendiente
+            saveCart([]); // esto llamará a syncPendingPedidoFromCart y eliminará el pendiente
+            renderCart();
+            updateBadge();
+
+            // Cerrar modal carrito si está abierto
+            const cartModalEl = document.getElementById('cartModal');
+            const cartModalInst = cartModalEl ? bootstrap.Modal.getInstance(cartModalEl) : null;
+            if (cartModalInst) cartModalInst.hide();
+
+            alert('Pedido realizado correctamente. Gracias por tu compra.');
+        });
+    }
+
     renderCart();
     updateBadge();
 });

@@ -1,11 +1,11 @@
 // ============ CONFIGURACIÓN Y CONSTANTES ============
 const datosIniciales = [
-    { id: 1, nombre: "Cachalote", stock: 50, precio: 25000, estado: "Activo", imagen: "flowerOne.jpg", descripcion: "Variedad con predominancia sativa experta para espacios de exterior y facil cuidado." },
-    { id: 2, nombre: "Early Skunk", stock: 35, precio: 25000, estado: "Activo", imagen: "flowerTwo.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
-    { id: 3, nombre: "White Widow", stock: 8, precio: 25000, estado: "Poco Stock", imagen: "flowerThree.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
-    { id: 4, nombre: "OG Kush", stock: 0, precio: 25000, estado: "Inactivo", imagen: "flowerFour.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
-    { id: 5, nombre: "Blue Dream", stock: 42, precio: 25000, estado: "Activo", imagen: "flowerFive.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
-    { id: 6, nombre: "Girl Scout Cookies", stock: 12, precio: 25000, estado: "Poco Stock", imagen: "flowerSix.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." }
+    { id: 201, nombre: "Cachalote", stock: 50, precio: 25000, estado: "Activo", descripcion: "Variedad con predominancia sativa, ideal para exterior.", img: '/Imagenes/flowerOne.jpg' },
+    { id: 202, nombre: "Early Skunk", stock: 40, precio: 25000, estado: "Activo", descripcion: "Genética estable, rápida floración.", img: '/Imagenes/flowerTwo.jpg' },
+    { id: 203, nombre: "White Widow", stock: 30, precio: 25000, estado: "Activo", descripcion: "Clásica y potente, buena para cultivo indoor.", img: '/Imagenes/flowerThree.jpg' },
+    { id: 204, nombre: "OG Kush", stock: 20, precio: 25000, estado: "Activo", descripcion: "Aromática y resinosa, preferida por conocedores.", img: '/Imagenes/flowerFour.jpg' },
+    { id: 205, nombre: "Blue Dream", stock: 60, precio: 25000, estado: "Activo", descripcion: "Equilibrada, efecto suave y productiva.", img: '/Imagenes/flowerFive.jpg' },
+    { id: 206, nombre: "Girl Scout Cookies", stock: 8, precio: 25000, estado: "Poco Stock", descripcion: "Sabor dulce y efecto potente.", img: '/Imagenes/flowerSix.jpg' }
 ];
 
 // ============ UTILIDADES DE STORAGE ============
@@ -63,67 +63,114 @@ if (formInventario) {
     formInventario.addEventListener('submit', function(e) {
         e.preventDefault(); 
 
-        const nuevoProd = {
-            id: Math.max(...StorageManager.getInventario().map(p => p.id), 0) + 1,
-            nombre: document.getElementById('nombreInput').value,
-            descripcion: document.getElementById('descripcionInput').value || '',
-            imagen: imagenEnBase64 || '', // Usar Base64 en lugar del nombre
-            stock: document.getElementById('stockInput').value || 0,
-            precio: document.getElementById('precioInput').value,
-            estado: EstadoHelper.calcularEstado(document.getElementById('stockInput').value)
-        };
+            const nombreVal = document.getElementById('nombreInput').value;
+            const stockVal = document.getElementById('stockInput').value || 0;
+            const precioVal = document.getElementById('precioInput').value || 0;
+            const descripcionVal = document.getElementById('descripcionInput').value || '';
+            const imagenFile = document.getElementById('imagenInput').files[0];
 
-        let inventario = StorageManager.getInventario();
-        inventario.push(nuevoProd);
-        StorageManager.setInventario(inventario);
+            const nuevoProd = {
+                id: Math.floor(Math.random() * 1000) + 100,
+                nombre: nombreVal,
+                stock: stockVal,
+                precio: precioVal,
+                estado: EstadoHelper.calcularEstado(stockVal),
+                descripcion: descripcionVal,
+                img: ''
+            };
 
-        const modalEl = document.getElementById('modalProducto');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        modalInstance.hide();
-        
-        // Limpiar variables
-        imagenEnBase64 = null;
-        formInventario.reset();
-        const previewEl = document.getElementById('previewImagen');
-        if (previewEl) previewEl.innerHTML = '';
-        
-        cargarProductosAdmin();
-        alert('Producto agregado correctamente');
+            function pushAndClose() {
+                let inventario = StorageManager.getInventario();
+                inventario.push(nuevoProd);
+                StorageManager.setInventario(inventario);
+
+                const modalEl = document.getElementById('modalProducto');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+                formInventario.reset();
+                cargarTabla();
+                alert('Producto agregado correctamente');
+            }
+
+            if (imagenFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    nuevoProd.img = e.target.result;
+                    pushAndClose();
+                };
+                reader.readAsDataURL(imagenFile);
+            } else {
+                pushAndClose();
+            }
     });
 }
 
-// Manejador de eventos del formulario para editar productos
+window.eliminarProducto = function(index) {
+    if(confirm('¿Estás seguro de borrar este producto del inventario?')) {
+        let inventario = StorageManager.getInventario();
+        inventario.splice(index, 1);
+        StorageManager.setInventario(inventario);
+        cargarTabla();
+    }
+};
+
+let indiceEdicion = null;
+
+window.abrirModalEditar = function(index) {
+    indiceEdicion = index;
+    let inventario = StorageManager.getInventario();
+    const producto = inventario[index];
+    
+    document.getElementById('nombreEditInput').value = producto.nombre;
+    document.getElementById('stockEditInput').value = producto.stock;
+    document.getElementById('precioEditInput').value = producto.precio;
+    document.getElementById('estadoEditInput').value = producto.estado;
+    document.getElementById('descripcionEditInput').value = producto.descripcion || '';
+    const preview = document.getElementById('imagenEditPreview');
+    if (producto.img) { preview.src = producto.img; preview.style.display = 'block'; } else { preview.src = ''; preview.style.display = 'none'; }
+};
+
 const formEditarInventario = document.getElementById('formEditarInventario');
 if (formEditarInventario) {
     formEditarInventario.addEventListener('submit', function(e) {
         e.preventDefault();
         
         let inventario = StorageManager.getInventario();
-        
-        inventario[indiceEdicionProducto] = {
-            id: inventario[indiceEdicionProducto].id,
-            nombre: document.getElementById('nombreEditInput').value,
-            descripcion: document.getElementById('descripcionEditInput').value || '',
-            imagen: imagenEditEnBase64 || inventario[indiceEdicionProducto].imagen, // Si se subió nueva, usar esa; si no, mantener la anterior
-            stock: document.getElementById('stockEditInput').value || 0,
-            precio: document.getElementById('precioEditInput').value,
-            estado: EstadoHelper.calcularEstado(document.getElementById('stockEditInput').value)
-        };
-        
-        StorageManager.setInventario(inventario);
-        
-        const modalEl = document.getElementById('modalEditarProducto');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        modalInstance.hide();
-        
-        // Limpiar variables
-        imagenEditEnBase64 = null;
-        formEditarInventario.reset();
-        const previewEl = document.getElementById('previewImagenEdit');
-        if (previewEl) previewEl.innerHTML = '';
-        
-        cargarProductosAdmin();
-        alert('Producto actualizado correctamente');
+        const nombreVal = document.getElementById('nombreEditInput').value;
+        const stockVal = document.getElementById('stockEditInput').value || 0;
+        const precioVal = document.getElementById('precioEditInput').value || 0;
+        const descripcionVal = document.getElementById('descripcionEditInput').value || '';
+        const imagenFile = document.getElementById('imagenEditInput').files[0];
+
+        function applyUpdateWithImg(imgData) {
+            inventario[indiceEdicion] = {
+                id: inventario[indiceEdicion].id,
+                nombre: nombreVal,
+                stock: stockVal,
+                precio: precioVal,
+                estado: EstadoHelper.calcularEstado(stockVal),
+                descripcion: descripcionVal,
+                img: imgData
+            };
+
+            StorageManager.setInventario(inventario);
+            const modalEl = document.getElementById('modalEditarProducto');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            formEditarInventario.reset();
+            cargarTabla();
+            alert('Producto actualizado correctamente');
+        }
+
+        if (imagenFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) { applyUpdateWithImg(e.target.result); };
+            reader.readAsDataURL(imagenFile);
+        } else {
+            // keep existing img if any
+            const existingImg = inventario[indiceEdicion].img || '';
+            applyUpdateWithImg(existingImg);
+        }
     });
 }
 
@@ -145,6 +192,24 @@ function inicializarAdmin() {
         };
         clientes.push(adminUser);
         StorageManager.setClientes(clientes);
+    }
+}
+
+// Asegura que los productos por defecto en `datosIniciales` existan en el storage
+function asegurarProductosPorDefecto() {
+    let inventario = StorageManager.getInventario();
+    let agregado = false;
+
+    datosIniciales.forEach(def => {
+        const existe = inventario.some(p => p.id === def.id || p.nombre === def.nombre);
+        if (!existe) {
+            inventario.push(def);
+            agregado = true;
+        }
+    });
+
+    if (agregado || inventario.length === 0) {
+        StorageManager.setInventario(inventario.length ? inventario : datosIniciales.slice());
     }
 }
 
@@ -397,13 +462,11 @@ if(btnLogout) {
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Inicializar usuario admin si es la primera vez
     inicializarAdmin();
-    
-    // 2. Auto-inicializar inventario con datos iniciales (nunca será vacío gracias a StorageManager)
-    StorageManager.getInventario(); // Esto garantiza que siempre hay datos
-    
-    // 3. Cargar datos en las vistas
+    // Asegurar productos por defecto en storage
+    asegurarProductosPorDefecto();
+    cargarTabla();
     cargarClientes();
-    cargarProductosAdmin();
+    actualizarEstadisticasAdmin();
     
     // 4. Inicializar controles de estado automático
     inicializarControlesEstado();
@@ -455,7 +518,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('📦 Inventario:', StorageManager.getInventario());
 });
 
-// Función auxiliar para inicializar controles de estado automático
+// Escuchar cambios en localStorage desde otras pestañas para actualizar stats/tabla
+window.addEventListener('storage', function(e) {
+    if (!e.key) return;
+    const keysToWatch = ['pedidos', 'miInventario', 'usuariosRegistrados', 'ventasMes'];
+    if (keysToWatch.includes(e.key)) {
+        // refrescar vistas y estadísticas cuando cambian
+        try { cargarTabla(); } catch (err) {}
+        try { cargarClientes(); } catch (err) {}
+        try { actualizarEstadisticasAdmin(); } catch (err) {}
+    }
+});
+
+// Función auxiliar para inicializar controles de estado automático (sin repetición)
 function inicializarControlesEstado() {
     const pares = [
         { stock: 'stockInput', estado: 'estadoInput' },
@@ -472,4 +547,22 @@ function inicializarControlesEstado() {
             });
         }
     });
+}
+
+// Actualiza estadísticas visibles en el dashboard (ventas, pedidos pendientes, usuarios nuevos)
+function actualizarEstadisticasAdmin() {
+    // Calcular ventas como la suma monetaria de todos los pedidos (pendientes + completados)
+    const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+    const ventas = pedidos.reduce((s, p) => s + (parseFloat(p.total) || 0), 0);
+    const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;
+    const clientes = StorageManager.getClientes();
+    const clientesRegulares = clientes.filter(c => !c.esAdmin).length;
+
+    const elVentas = document.getElementById('ventasMes');
+    const elPendientes = document.getElementById('pedidosPendientes');
+    const elUsuarios = document.getElementById('usuariosNuevos');
+
+    if (elVentas) elVentas.textContent = '$' + ventas.toLocaleString();
+    if (elPendientes) elPendientes.textContent = pendientes;
+    if (elUsuarios) elUsuarios.textContent = clientesRegulares;
 }
