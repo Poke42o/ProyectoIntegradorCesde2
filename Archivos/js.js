@@ -175,7 +175,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
         const nombre = registerForm.querySelectorAll('input')[0].value;
-        const email = registerForm.querySelector('input[type="email"]').value;
+        const email = registerForm.querySelector('input[type="email"]').value.trim().toLowerCase();
+
         const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
         const confirmPassword = document.getElementById('confirmPassword').value;
         const telefono = document.getElementById('phone')?.value || '';
@@ -186,7 +187,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const usuariosGuardados = JSON.parse(localStorage.getItem('usuarios')) || [];
-        const existe = usuariosGuardados.find(u => u.email === email);
+        const existe = usuariosGuardados.find(u => u.email.toLowerCase() === email);
+
 
         if (existe) {
             alert('Este correo ya está registrado. Intenta iniciar sesión.');
@@ -194,10 +196,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const userData = {
-            nombre: nombre,
-            email: email,
-            password: password
-        };  
+        nombre: nombre,
+        email: email, 
+        password: password
+        };
+
 
         usuariosGuardados.push(userData);
         localStorage.setItem('usuarios', JSON.stringify(usuariosGuardados));
@@ -232,8 +235,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            const emailLogin = loginForm.querySelector('input[type="email"]').value;
-            const passLogin = loginForm.querySelector('input[type="password"]').value;
+        const emailLogin = loginForm.querySelector('input[type="email"]').value;
+        const passLogin = loginForm.querySelector('input[type="password"]').value;
 
           
             if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
@@ -243,9 +246,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return; 
             }  
 
-           const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-           const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
-           
+       const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+       const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
+       
 
             if (usuarioEncontrado) {
              
