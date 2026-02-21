@@ -528,7 +528,7 @@ section#servicios .container > h2 {
   margin-bottom: 1rem;
 }
 
-/* Sección Nosotros - Layout de dos columnas */
+
 section#nosotros .nosotros-wrapper {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -598,7 +598,7 @@ section#nosotros .nosotros-text {
   }
 }
 
-/* Responsive - Mobile */
+
 @media (max-width: 576px) {
   section#nosotros .nosotros-wrapper {
     gap: 1.5rem;
@@ -742,7 +742,7 @@ object-fit: cover;
   color: white;
 }
 
-/* Header centrado */
+
 .custom-modal .modal-header {
   border-bottom: none;
   justify-content: center;
@@ -758,7 +758,7 @@ object-fit: cover;
   color: var(--green);
 }
 
-/* Botón cerrar */
+
 .custom-modal .btn-close {
   position: absolute;
   right: 1rem;
@@ -766,18 +766,17 @@ object-fit: cover;
   filter: invert(1);
 }
 
-/* Body */
+
 .custom-modal .modal-body {
   padding: 2rem;
 }
 
-/* Labels */
+
 .custom-modal .form-label {
   color: #cfcfcf;
   font-size: 0.9rem;
 }
 
-/* Inputs */
 .custom-input {
   background-color: transparent;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -797,7 +796,7 @@ object-fit: cover;
   color: white;
 }
 
-/* Botón principal */
+
 .custom-btn {
   background: linear-gradient(135deg, var(--green), var(--dark-green));
   color: black;
@@ -852,7 +851,7 @@ select.custom-input {
     border-radius: 50%;
 }
 
-/* Footer link and icon adjustments: center icons with their text and remove underline */
+
 .site-footer a {
   text-decoration: none;
   color: inherit;
