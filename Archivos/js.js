@@ -185,8 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // --- MEJORA: Lógica de múltiples usuarios ---
-        // Guardar en 'usuarios' para login
         const usuariosGuardados = JSON.parse(localStorage.getItem('usuarios')) || [];
         const existe = usuariosGuardados.find(u => u.email === email);
 
