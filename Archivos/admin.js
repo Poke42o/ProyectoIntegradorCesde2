@@ -1,4 +1,3 @@
-// ============ CONFIGURACIÓN Y CONSTANTES ============
 const datosIniciales = [
     { id: 201, nombre: "Cachalote", stock: 50, precio: 25000, estado: "Activo", descripcion: "Variedad con predominancia sativa, ideal para exterior.", img: '/Imagenes/flowerOne.jpg' },
     { id: 202, nombre: "Early Skunk", stock: 40, precio: 25000, estado: "Activo", descripcion: "Genética estable, rápida floración.", img: '/Imagenes/flowerTwo.jpg' },
@@ -7,12 +6,9 @@ const datosIniciales = [
     { id: 205, nombre: "Blue Dream", stock: 60, precio: 25000, estado: "Activo", descripcion: "Equilibrada, efecto suave y productiva.", img: '/Imagenes/flowerFive.jpg' },
     { id: 206, nombre: "Girl Scout Cookies", stock: 8, precio: 25000, estado: "Poco Stock", descripcion: "Sabor dulce y efecto potente.", img: '/Imagenes/flowerSix.jpg' }
 ];
-
-
 const StorageManager = {
     getInventario: () => {
         let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
-    
         if (inventario.length === 0) {
             inventario = datosIniciales;
             localStorage.setItem('miInventario', JSON.stringify(inventario));
@@ -23,8 +19,6 @@ const StorageManager = {
     getClientes: () => JSON.parse(localStorage.getItem('usuariosRegistrados')) || [],
     setClientes: (data) => localStorage.setItem('usuariosRegistrados', JSON.stringify(data))
 };
-
-
 const EstadoHelper = {
     calcularEstado: (cantidad) => {
         cantidad = parseInt(cantidad, 10);
@@ -41,8 +35,6 @@ const EstadoHelper = {
         return colores[estado] || 'bg-secondary';
     }
 };
-
-
 let indiceEdicionProducto = null;
 let imagenEnBase64 = null;
 let imagenEditEnBase64 = null;
@@ -169,7 +161,6 @@ if (formEditarInventario) {
             reader.onload = function(e) { applyUpdateWithImg(e.target.result); };
             reader.readAsDataURL(imagenFile);
         } else {
-            // keep existing img if any
             const existingImg = inventario[indiceEdicion].img || '';
             applyUpdateWithImg(existingImg);
         }
@@ -179,15 +170,17 @@ if (formEditarInventario) {
 
 function inicializarAdmin() {
     let clientes = StorageManager.getClientes();
-    
-    
-    const adminExiste = clientes.some(c => c.email === 'admin@magic.com');
-    
-    if (!adminExiste && clientes.length === 0) {
+    const adminExisteNuevo = clientes.some(c => c.email === 'magiaepigea@gmail.com');
+    const adminExisteAntiguo = clientes.find(c => c.email === 'admin@magic.com');
+    if (adminExisteAntiguo && !adminExisteNuevo) {
+        adminExisteAntiguo.email = 'magiaepigea@gmail.com';
+        StorageManager.setClientes(clientes);
+    }
+    else if (!adminExisteNuevo && clientes.length === 0) {
         const adminUser = {
             id: 1,
             nombre: 'Administrador',
-            email: 'admin@magic.com',
+            email: 'magiaepigea@gmail.com',
             telefono: '+57 3001234567',
             fechaRegistro: new Date().toISOString().split('T')[0],
             esAdmin: true
@@ -216,30 +209,19 @@ function asegurarProductosPorDefecto() {
 }
 
 function cargarClientes() {
-    const tablaClientes = document.getElementById('tablaClientes');
     if (!tablaClientes) return;
-    
     tablaClientes.innerHTML = '';
-    
-   
     let clientes = StorageManager.getClientes();
-    
-  
     const admin = clientes.filter(c => c.esAdmin);
     const clientesRegulares = clientes.filter(c => !c.esAdmin);
-    
-    
     const clientesOrdenados = [
         ...admin,
         ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))
     ];
     
-    
     document.getElementById('totalClientes').textContent = clientesOrdenados.length;
     document.getElementById('clientesActivos').textContent = clientesOrdenados.length;
     document.getElementById('comprasTotal').textContent = Math.floor(Math.random() * 100) + 30;
-    
-    
     if (clientesOrdenados.length === 0) {
         tablaClientes.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay clientes registrados</td></tr>';
     } else {
@@ -270,40 +252,23 @@ function cargarClientes() {
 window.eliminarCliente = function(index) {
     if(confirm('¿Estás seguro de que deseas eliminar este cliente? Se eliminará su cuenta completamente.')) {
         let clientes = StorageManager.getClientes();
-        
-       
         const admin = clientes.filter(c => c.esAdmin);
         const clientesRegulares = clientes.filter(c => !c.esAdmin);
-        
-        
         const clientesOrdenados = [...admin, ...clientesRegulares];
-        
-        
         const clienteAEliminar = clientesOrdenados[index];
-        
-        
         if (clienteAEliminar.esAdmin) {
             alert('No se puede eliminar la cuenta del administrador.');
             return;
         }
-        
-       
         const indiceReal = clientes.findIndex(c => c.email === clienteAEliminar.email);
-        
         if (indiceReal !== -1) {
-           
             clientes.splice(indiceReal, 1);
             StorageManager.setClientes(clientes);
-            
-          
             let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
             usuarios = usuarios.filter(u => u.email !== clienteAEliminar.email);
             localStorage.setItem('usuarios', JSON.stringify(usuarios));
-            
-           
             const cartKey = `magia_cart_${clienteAEliminar.email}`;
             localStorage.removeItem(cartKey);
-            
             cargarClientes();
             alert(`Cliente ${clienteAEliminar.nombre} eliminado completamente.`);
         }
@@ -312,20 +277,13 @@ window.eliminarCliente = function(index) {
 
 window.verDetalleCliente = function(index) {
     let clientes = StorageManager.getClientes();
-    
-    
     const admin = clientes.filter(c => c.esAdmin);
     const clientesRegulares = clientes.filter(c => !c.esAdmin);
-    
-  
     const clientesOrdenados = [...admin, ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))];
-    
     const cliente = clientesOrdenados[index];
     const badge = cliente.esAdmin ? '\n\n👤 Perfil: ADMINISTRADOR' : '';
     alert(`Detalles del Cliente\n\nNombre: ${cliente.nombre}\nEmail: ${cliente.email}\nTeléfono: ${cliente.telefono}\nFecha Registro: ${cliente.fechaRegistro}${badge}`);
 };
-
-
 window.mostrarDashboard = function(e) {
     e.preventDefault();
     document.getElementById('dashboardPanel').style.display = 'block';
@@ -333,7 +291,6 @@ window.mostrarDashboard = function(e) {
     document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
     e.target.closest('a').classList.add('active');
 };
-
 window.mostrarClientes = function(e) {
     e.preventDefault();
     document.getElementById('dashboardPanel').style.display = 'none';
@@ -343,8 +300,6 @@ window.mostrarClientes = function(e) {
     document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
     e.target.closest('a').classList.add('active');
 };
-
-
 window.mostrarProductos = function(e) {
     e.preventDefault();
     document.getElementById('dashboardPanel').style.display = 'none';
@@ -362,16 +317,12 @@ function cargarProductosAdmin() {
     tablaProductos.innerHTML = '';
     
     let inventario = StorageManager.getInventario();
-    
-   
     const totalActivos = inventario.filter(p => p.estado === 'Activo').length;
     const valorTotal = inventario.reduce((sum, p) => sum + (Number(p.precio) * Number(p.stock)), 0);
     
     document.getElementById('totalProductos').textContent = inventario.length;
     document.getElementById('productosActivos').textContent = totalActivos;
     document.getElementById('valorInventario').textContent = `$${valorTotal.toLocaleString()}`;
-    
-   
     if (inventario.length === 0) {
         tablaProductos.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay productos en el inventario</td></tr>';
     } else {
@@ -407,8 +358,6 @@ window.verDetalleProducto = function(index) {
     const prod = inventario[index];
     const costoTotal = (Number(prod.precio) * Number(prod.stock)).toLocaleString();
     const descripcion = prod.descripcion || 'Sin descripción disponible';
-    
-    // Si hay imagen, crear HTML con imagen; si no, solo texto
     let imagenHTML = '';
     if (prod.imagen) {
         imagenHTML = `\n🖼️ Imagen: [Se muestra una imagen en Base64]\n`;
@@ -419,7 +368,6 @@ window.verDetalleProducto = function(index) {
 
 window.abrirModalEditarProductoAdmin = function(index) {
     indiceEdicionProducto = index;
-   
     indiceEdicion = index;
     imagenEditEnBase64 = null;
     let inventario = StorageManager.getInventario();
@@ -430,8 +378,6 @@ window.abrirModalEditarProductoAdmin = function(index) {
     document.getElementById('stockEditInput').value = producto.stock;
     document.getElementById('precioEditInput').value = producto.precio;
     document.getElementById('estadoEditInput').value = producto.estado;
-
-    
     const previewEl = document.getElementById('previewImagenEdit');
     const srcImg = producto.imagen || producto.img || '';
     if (previewEl) {
@@ -452,8 +398,6 @@ window.eliminarProductoAdmin = function(index) {
         alert('Producto eliminado correctamente');
     }
 };
-
-
 const btnLogout = document.querySelector('.logout-btn');
 if(btnLogout) {
     btnLogout.addEventListener('click', function(e) {
@@ -474,17 +418,12 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarTabla();
     cargarClientes();
     actualizarEstadisticasAdmin();
-    
-    
     inicializarControlesEstado();
-    
-    
     const imagenInput = document.getElementById('imagenInput');
     if (imagenInput) {
         imagenInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
-                // Mostrar preview
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const preview = document.getElementById('previewImagen');
@@ -493,8 +432,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
                 reader.readAsDataURL(file);
-                
-                
                 imagenEnBase64 = await convertirImagenABase64(file);
             }
         });
@@ -505,7 +442,6 @@ document.addEventListener('DOMContentLoaded', function() {
         imagenEditInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
-               
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const preview = document.getElementById('previewImagenEdit');
@@ -514,8 +450,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
                 reader.readAsDataURL(file);
-                
-                
                 imagenEditEnBase64 = await convertirImagenABase64(file);
             }
         });
@@ -524,20 +458,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Admin Panel Iniciado - Datos disponibles en StorageManager');
     console.log('📦 Inventario:', StorageManager.getInventario());
 });
-
-
 window.addEventListener('storage', function(e) {
     if (!e.key) return;
     const keysToWatch = ['pedidos', 'miInventario', 'usuariosRegistrados', 'ventasMes'];
     if (keysToWatch.includes(e.key)) {
-       
         try { cargarTabla(); } catch (err) {}
         try { cargarClientes(); } catch (err) {}
         try { actualizarEstadisticasAdmin(); } catch (err) {}
     }
 });
-
-
 function inicializarControlesEstado() {
     const pares = [
         { stock: 'stockInput', estado: 'estadoInput' },
@@ -549,7 +478,6 @@ function inicializarControlesEstado() {
         const estadoInput = document.getElementById(par.estado);
         
         if (stockInput && estadoInput) {
-            
             stockInput.addEventListener('input', function() {
                 let val = parseInt(this.value, 10);
                 if (isNaN(val) || val < 0) { val = 0; this.value = 0; }
@@ -567,7 +495,6 @@ function actualizarEstadisticasAdmin() {
     const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;
     const clientes = StorageManager.getClientes();
     const clientesRegulares = clientes.filter(c => !c.esAdmin).length;
-
     const elVentas = document.getElementById('ventasMes');
     const elPendientes = document.getElementById('pedidosPendientes');
     const elUsuarios = document.getElementById('usuariosNuevos');
