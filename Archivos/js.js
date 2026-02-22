@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const nombre = registerForm.querySelectorAll('input')[0].value;
         const email = registerForm.querySelector('input[type="email"]').value.trim().toLowerCase();
 
-        const password = document.getElementById('registerPassword').value;
+        const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
         const confirmPassword = document.getElementById('confirmPassword').value;
         const telefono = document.getElementById('phone')?.value || '';
 
@@ -223,9 +223,11 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-        const emailLogin = loginForm.querySelector('input[type="email"]').value.trim().toLowerCase();
-        const passLogin = document.getElementById('loginPassword').value;
-        if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
+        const emailLogin = loginForm.querySelector('input[type="email"]').value;
+        const passLogin = loginForm.querySelector('input[type="password"]').value;
+
+          
+            if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
                 alert("¡Hola! Redirigiendo al Panel de Control");
                 sessionStorage.setItem('sesionActiva', 'admin')
                 window.location.href = 'admin.html';
@@ -445,12 +447,10 @@ function renderProductsFromInventario() {
                 }
             } catch (err) { unitPrice = 0; }
             const itemObj = {
-                id: productId ? String(productId) : (Date.now().toString() + Math.floor(Math.random()*1000)),
-                productId: productId ? String(productId) : null,
+                id: Date.now().toString() + Math.floor(Math.random()*1000),
                 title: title.trim(),
                 qty: Number(qty),
-                img: img,
-                unitPrice: Number(unitPrice) || 0
+                img: img
             };
             let existing = null;
             if (itemObj.productId) {
