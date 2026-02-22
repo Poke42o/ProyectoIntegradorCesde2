@@ -8,11 +8,11 @@ const datosIniciales = [
     { id: 206, nombre: "Girl Scout Cookies", stock: 8, precio: 25000, estado: "Poco Stock", descripcion: "Sabor dulce y efecto potente.", img: '/Imagenes/flowerSix.jpg' }
 ];
 
-// ============ UTILIDADES DE STORAGE ============
+
 const StorageManager = {
     getInventario: () => {
         let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
-        // Si no hay inventario, cargar datos iniciales automáticamente
+    
         if (inventario.length === 0) {
             inventario = datosIniciales;
             localStorage.setItem('miInventario', JSON.stringify(inventario));
@@ -24,13 +24,13 @@ const StorageManager = {
     setClientes: (data) => localStorage.setItem('usuariosRegistrados', JSON.stringify(data))
 };
 
-// ============ UTILIDADES DE ESTADO ============
+
 const EstadoHelper = {
     calcularEstado: (cantidad) => {
-        cantidad = parseInt(cantidad) || 0;
-        if (cantidad > 10) return 'Activo';
-        if (cantidad > 0 && cantidad <= 10) return 'Poco Stock';
-        return 'Inactivo';
+        cantidad = parseInt(cantidad, 10);
+        if (isNaN(cantidad) || cantidad <= 0) return 'Inactivo';
+        if (cantidad >= 10) return 'Activo';
+        return 'Poco Stock';
     },
     getBadgeColor: (estado) => {
         const colores = {
@@ -42,12 +42,12 @@ const EstadoHelper = {
     }
 };
 
-// ============ GESTIÓN DE INVENTARIO (VISTA PRODUCTOS) ============
+
 let indiceEdicionProducto = null;
 let imagenEnBase64 = null;
 let imagenEditEnBase64 = null;
 
-// Función para convertir imagen a Base64
+
 function convertirImagenABase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -57,15 +57,16 @@ function convertirImagenABase64(file) {
     });
 }
 
-// Manejador de eventos del formulario para agregar productos
+
 const formInventario = document.getElementById('formInventario');
 if (formInventario) {
     formInventario.addEventListener('submit', function(e) {
         e.preventDefault(); 
 
             const nombreVal = document.getElementById('nombreInput').value;
-            const stockVal = document.getElementById('stockInput').value || 0;
-            const precioVal = document.getElementById('precioInput').value || 0;
+            let stockVal = parseInt(document.getElementById('stockInput').value, 10);
+            if (isNaN(stockVal) || stockVal < 0) stockVal = 0;
+            const precioVal = parseFloat(document.getElementById('precioInput').value) || 0;
             const descripcionVal = document.getElementById('descripcionInput').value || '';
             const imagenFile = document.getElementById('imagenInput').files[0];
 
@@ -137,8 +138,9 @@ if (formEditarInventario) {
         
         let inventario = StorageManager.getInventario();
         const nombreVal = document.getElementById('nombreEditInput').value;
-        const stockVal = document.getElementById('stockEditInput').value || 0;
-        const precioVal = document.getElementById('precioEditInput').value || 0;
+        let stockVal = parseInt(document.getElementById('stockEditInput').value, 10);
+        if (isNaN(stockVal) || stockVal < 0) stockVal = 0;
+        const precioVal = parseFloat(document.getElementById('precioEditInput').value) || 0;
         const descripcionVal = document.getElementById('descripcionEditInput').value || '';
         const imagenFile = document.getElementById('imagenEditInput').files[0];
 
@@ -174,11 +176,11 @@ if (formEditarInventario) {
     });
 }
 
-// ============ GESTIÓN DE CLIENTES ============
+
 function inicializarAdmin() {
     let clientes = StorageManager.getClientes();
     
-    // Verificar si el admin ya existe
+    
     const adminExiste = clientes.some(c => c.email === 'admin@magic.com');
     
     if (!adminExiste && clientes.length === 0) {
@@ -195,7 +197,7 @@ function inicializarAdmin() {
     }
 }
 
-// Asegura que los productos por defecto en `datosIniciales` existan en el storage
+
 function asegurarProductosPorDefecto() {
     let inventario = StorageManager.getInventario();
     let agregado = false;
@@ -219,25 +221,25 @@ function cargarClientes() {
     
     tablaClientes.innerHTML = '';
     
-    // Cargar SOLO usuarios registrados del localStorage
+   
     let clientes = StorageManager.getClientes();
     
-    // Separar admin de los demás clientes
+  
     const admin = clientes.filter(c => c.esAdmin);
     const clientesRegulares = clientes.filter(c => !c.esAdmin);
     
-    // Ordenar: admin primero, luego clientes por fecha de registro (más recientes primero)
+    
     const clientesOrdenados = [
         ...admin,
         ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))
     ];
     
-    // Actualizar estadísticas
+    
     document.getElementById('totalClientes').textContent = clientesOrdenados.length;
     document.getElementById('clientesActivos').textContent = clientesOrdenados.length;
     document.getElementById('comprasTotal').textContent = Math.floor(Math.random() * 100) + 30;
     
-    // Llenar tabla
+    
     if (clientesOrdenados.length === 0) {
         tablaClientes.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay clientes registrados</td></tr>';
     } else {
@@ -269,36 +271,36 @@ window.eliminarCliente = function(index) {
     if(confirm('¿Estás seguro de que deseas eliminar este cliente? Se eliminará su cuenta completamente.')) {
         let clientes = StorageManager.getClientes();
         
-        // Separar admin de regulares
+       
         const admin = clientes.filter(c => c.esAdmin);
         const clientesRegulares = clientes.filter(c => !c.esAdmin);
         
-        // El índice corresponde a la lista ordenada (admin primero)
+        
         const clientesOrdenados = [...admin, ...clientesRegulares];
         
-        // Obtener el cliente a eliminar
+        
         const clienteAEliminar = clientesOrdenados[index];
         
-        // No permitir eliminar admin
+        
         if (clienteAEliminar.esAdmin) {
             alert('No se puede eliminar la cuenta del administrador.');
             return;
         }
         
-        // Buscar su índice real en el array original
+       
         const indiceReal = clientes.findIndex(c => c.email === clienteAEliminar.email);
         
         if (indiceReal !== -1) {
-            // Eliminar de usuariosRegistrados
+           
             clientes.splice(indiceReal, 1);
             StorageManager.setClientes(clientes);
             
-            // Eliminar de usuarios (login)
+          
             let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
             usuarios = usuarios.filter(u => u.email !== clienteAEliminar.email);
             localStorage.setItem('usuarios', JSON.stringify(usuarios));
             
-            // Eliminar carrito del usuario si existe
+           
             const cartKey = `magia_cart_${clienteAEliminar.email}`;
             localStorage.removeItem(cartKey);
             
@@ -311,11 +313,11 @@ window.eliminarCliente = function(index) {
 window.verDetalleCliente = function(index) {
     let clientes = StorageManager.getClientes();
     
-    // Separar admin de regulares
+    
     const admin = clientes.filter(c => c.esAdmin);
     const clientesRegulares = clientes.filter(c => !c.esAdmin);
     
-    // Ordenar igual que en cargarClientes()
+  
     const clientesOrdenados = [...admin, ...clientesRegulares.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro))];
     
     const cliente = clientesOrdenados[index];
@@ -323,7 +325,7 @@ window.verDetalleCliente = function(index) {
     alert(`Detalles del Cliente\n\nNombre: ${cliente.nombre}\nEmail: ${cliente.email}\nTeléfono: ${cliente.telefono}\nFecha Registro: ${cliente.fechaRegistro}${badge}`);
 };
 
-// ============ NAVEGACIÓN ============
+
 window.mostrarDashboard = function(e) {
     e.preventDefault();
     document.getElementById('dashboardPanel').style.display = 'block';
@@ -342,7 +344,7 @@ window.mostrarClientes = function(e) {
     e.target.closest('a').classList.add('active');
 };
 
-// ============ GESTIÓN DE PRODUCTOS (NUEVA VISTA) ============
+
 window.mostrarProductos = function(e) {
     e.preventDefault();
     document.getElementById('dashboardPanel').style.display = 'none';
@@ -361,7 +363,7 @@ function cargarProductosAdmin() {
     
     let inventario = StorageManager.getInventario();
     
-    // Calcular estadísticas
+   
     const totalActivos = inventario.filter(p => p.estado === 'Activo').length;
     const valorTotal = inventario.reduce((sum, p) => sum + (Number(p.precio) * Number(p.stock)), 0);
     
@@ -369,7 +371,7 @@ function cargarProductosAdmin() {
     document.getElementById('productosActivos').textContent = totalActivos;
     document.getElementById('valorInventario').textContent = `$${valorTotal.toLocaleString()}`;
     
-    // Llenar tabla
+   
     if (inventario.length === 0) {
         tablaProductos.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay productos en el inventario</td></tr>';
     } else {
@@ -417,22 +419,27 @@ window.verDetalleProducto = function(index) {
 
 window.abrirModalEditarProductoAdmin = function(index) {
     indiceEdicionProducto = index;
-    imagenEditEnBase64 = null; // Resetear la variable
+   
+    indiceEdicion = index;
+    imagenEditEnBase64 = null;
     let inventario = StorageManager.getInventario();
     const producto = inventario[index];
-    
+
     document.getElementById('nombreEditInput').value = producto.nombre;
     document.getElementById('descripcionEditInput').value = producto.descripcion || '';
     document.getElementById('stockEditInput').value = producto.stock;
     document.getElementById('precioEditInput').value = producto.precio;
     document.getElementById('estadoEditInput').value = producto.estado;
+
     
-    // Mostrar imagen actual en preview si existe
     const previewEl = document.getElementById('previewImagenEdit');
-    if (previewEl && producto.imagen) {
-        previewEl.innerHTML = `<img src="${producto.imagen}" style="max-width: 100%; height: 150px; object-fit: cover; border-radius: 8px;" alt="Imagen actual">`;
-    } else if (previewEl) {
-        previewEl.innerHTML = '<small class="text-muted">No hay imagen</small>';
+    const srcImg = producto.imagen || producto.img || '';
+    if (previewEl) {
+        if (srcImg) {
+            previewEl.innerHTML = `<img src="${srcImg}" style="max-width: 100%; height: 150px; object-fit: cover; border-radius: 8px;" alt="Imagen actual">`;
+        } else {
+            previewEl.innerHTML = '<small class="text-muted">No hay imagen</small>';
+        }
     }
 };
 
@@ -446,7 +453,7 @@ window.eliminarProductoAdmin = function(index) {
     }
 };
 
-// ============ CERRAR SESIÓN ============
+
 const btnLogout = document.querySelector('.logout-btn');
 if(btnLogout) {
     btnLogout.addEventListener('click', function(e) {
@@ -458,20 +465,20 @@ if(btnLogout) {
     });
 }
 
-// ============ INICIALIZACIÓN DEL DOCUMENTO ============
+
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Inicializar usuario admin si es la primera vez
+    
     inicializarAdmin();
-    // Asegurar productos por defecto en storage
+    
     asegurarProductosPorDefecto();
     cargarTabla();
     cargarClientes();
     actualizarEstadisticasAdmin();
     
-    // 4. Inicializar controles de estado automático
+    
     inicializarControlesEstado();
     
-    // 5. Inicializar listeners para file inputs de imagen
+    
     const imagenInput = document.getElementById('imagenInput');
     if (imagenInput) {
         imagenInput.addEventListener('change', async function(e) {
@@ -487,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 reader.readAsDataURL(file);
                 
-                // Convertir a Base64 y guardar
+                
                 imagenEnBase64 = await convertirImagenABase64(file);
             }
         });
@@ -498,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
         imagenEditInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
-                // Mostrar preview
+               
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const preview = document.getElementById('previewImagenEdit');
@@ -508,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 reader.readAsDataURL(file);
                 
-                // Convertir a Base64 y guardar
+                
                 imagenEditEnBase64 = await convertirImagenABase64(file);
             }
         });
@@ -518,19 +525,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('📦 Inventario:', StorageManager.getInventario());
 });
 
-// Escuchar cambios en localStorage desde otras pestañas para actualizar stats/tabla
+
 window.addEventListener('storage', function(e) {
     if (!e.key) return;
     const keysToWatch = ['pedidos', 'miInventario', 'usuariosRegistrados', 'ventasMes'];
     if (keysToWatch.includes(e.key)) {
-        // refrescar vistas y estadísticas cuando cambian
+       
         try { cargarTabla(); } catch (err) {}
         try { cargarClientes(); } catch (err) {}
         try { actualizarEstadisticasAdmin(); } catch (err) {}
     }
 });
 
-// Función auxiliar para inicializar controles de estado automático (sin repetición)
+
 function inicializarControlesEstado() {
     const pares = [
         { stock: 'stockInput', estado: 'estadoInput' },
@@ -542,16 +549,19 @@ function inicializarControlesEstado() {
         const estadoInput = document.getElementById(par.estado);
         
         if (stockInput && estadoInput) {
+            
             stockInput.addEventListener('input', function() {
-                estadoInput.value = EstadoHelper.calcularEstado(stockInput.value);
+                let val = parseInt(this.value, 10);
+                if (isNaN(val) || val < 0) { val = 0; this.value = 0; }
+                estadoInput.value = EstadoHelper.calcularEstado(val);
             });
         }
     });
 }
 
-// Actualiza estadísticas visibles en el dashboard (ventas, pedidos pendientes, usuarios nuevos)
+
 function actualizarEstadisticasAdmin() {
-    // Calcular ventas como la suma monetaria de todos los pedidos (pendientes + completados)
+   
     const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
     const ventas = pedidos.reduce((s, p) => s + (parseFloat(p.total) || 0), 0);
     const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;

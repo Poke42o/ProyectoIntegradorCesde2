@@ -1,4 +1,4 @@
-// ============ DATOS INICIALES (Fallback si no hay admin) ============
+
 const datosIniciales = [
     { id: 1, nombre: "Cachalote", stock: 50, precio: 25000, estado: "Activo", imagen: "flowerOne.jpg", descripcion: "Variedad con predominancia sativa experta para espacios de exterior y facil cuidado." },
     { id: 2, nombre: "Early Skunk", stock: 35, precio: 25000, estado: "Activo", imagen: "flowerTwo.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
@@ -8,11 +8,11 @@ const datosIniciales = [
     { id: 6, nombre: "Girl Scout Cookies", stock: 12, precio: 25000, estado: "Poco Stock", imagen: "flowerSix.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." }
 ];
 
-// ============ UTILIDADES DE STORAGE ============
+
 const StorageManager = {
     getInventario: () => {
         let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
-        // Si no hay inventario, cargar datos iniciales automáticamente
+        
         if (inventario.length === 0) {
             inventario = datosIniciales;
             localStorage.setItem('miInventario', JSON.stringify(inventario));
@@ -22,31 +22,63 @@ const StorageManager = {
     setInventario: (data) => localStorage.setItem('miInventario', JSON.stringify(data))
 };
 
-// ============ CARGAR PRODUCTOS DINÁMICAMENTE ============
+
+function resolveProductImage(prod, fallback = '../Imagenes/flowerOne.jpg') {
+    if (!prod) return fallback;
+
+   
+    if (prod.img) {
+        if (typeof prod.img === 'string' && prod.img.startsWith('data:')) return prod.img;
+        if (typeof prod.img === 'string' && (prod.img.startsWith('/') || prod.img.startsWith('http'))) return prod.img;
+        return `../Imagenes/${prod.img}`;
+    }
+
+    
+    if (prod.imagen) {
+        if (typeof prod.imagen === 'string' && prod.imagen.startsWith('data:')) return prod.imagen;
+        if (typeof prod.imagen === 'string' && (prod.imagen.startsWith('/') || prod.imagen.startsWith('http'))) return prod.imagen;
+        return `../Imagenes/${prod.imagen}`;
+    }
+
+
+    if (Array.isArray(prod.imagenes) && prod.imagenes.length) {
+        const first = prod.imagenes[0];
+        if (typeof first === 'string' && first.startsWith('data:')) return first;
+        if (typeof first === 'string' && (first.startsWith('/') || first.startsWith('http'))) return first;
+        return `../Imagenes/${first}`;
+    }
+
+    return fallback;
+}
+
+
+const defaultPool = ['flowerOne.jpg','flowerTwo.jpg','flowerThree.jpg','flowerFour.jpg','flowerFive.jpg','flowerSix.jpg'];
+
+
 function cargarProductosDinamicos() {
     const contenedor = document.getElementById('productosDinamicos');
     if (!contenedor) return;
     
-    // Obtener productos del localStorage (con fallback automático)
+   
     let productos = StorageManager.getInventario();
     
-    // Si aún no hay productos, mostrar mensaje
+    
     if (productos.length === 0) {
         contenedor.innerHTML = '<p class="text-muted">No hay productos disponibles en este momento</p>';
         return;
     }
     
-    // Generar HTML para cada producto
-    contenedor.innerHTML = productos.map(prod => {
-        // Si la imagen es Base64, usarla; si no, usar ruta de archivo
-        const imgSrc = prod.imagen && prod.imagen.startsWith('data:') 
-            ? prod.imagen 
-            : `/Imagenes/${prod.imagen || 'placeholder.jpg'}`;
+   
+    contenedor.innerHTML = productos.map((prod, idx) => {
+        
+        const fallback = `../Imagenes/${defaultPool[idx % defaultPool.length]}`;
+        const imgSrc = resolveProductImage(prod, fallback);
+        console.log('[productosDinamicos] imagen resuelta =>', prod.nombre, imgSrc);
         
         return `
             <div class="item">
                 <p>${prod.nombre}</p>
-                <img src="${imgSrc}" alt="${prod.nombre}" style="width: 100%; height: 250px; object-fit: cover;">
+                <img src="${imgSrc}" alt="${prod.nombre}" style="width: 100%; height: 250px; object-fit: cover;" onerror="this.onerror=null;this.src='../Imagenes/flowerOne.jpg';">
                 <div class="product-controls">
                     <select class="form-control qty-select custom-input">
                         <option value="1">1 semilla - $${Number(prod.precio).toLocaleString()} COP</option>
@@ -64,15 +96,15 @@ function cargarProductosDinamicos() {
         `;
     }).join('');
     
-    // Re-asignar event listeners a los botones "Agregar al carrito"
+    
     document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.addEventListener('click', agregarAlCarritoDinamico);
     });
 }
 
-// Función para agregar al carrito desde productos dinámicos
+
 function agregarAlCarritoDinamico(e) {
-    // Obtener email del usuario desde sessionStorage
+    
     const emailUsuario = sessionStorage.getItem('emailUsuarioActual');
     
     if (!emailUsuario) {
@@ -104,7 +136,7 @@ function agregarAlCarritoDinamico(e) {
 
     localStorage.setItem(cartKey, JSON.stringify(carrito));
     
-    // Actualizar contador del carrito
+    
     const cartCount = document.querySelector('.cart-count');
     if (cartCount) {
         const totalItems = carrito.reduce((sum, item) => sum + item.unidades, 0);
@@ -115,9 +147,9 @@ function agregarAlCarritoDinamico(e) {
     alert(`${productName} agregado al carrito`);
 }
 
-// ============ FUNCIONES GLOBALES ============
 
-// Alternar visibilidad de contraseña
+
+
 function togglePassword(inputId, iconSpan) {
     const input = document.getElementById(inputId);
     const icon = iconSpan.querySelector("i");
@@ -133,7 +165,7 @@ function togglePassword(inputId, iconSpan) {
     }
 }
 
-// Actualizar navbar según sesión
+
 function actualizarNavbar() {
     const authLinks = document.getElementById('auth-links');
     const userLinks = document.getElementById('user-links');
@@ -154,20 +186,20 @@ function actualizarNavbar() {
         } 
         
     } else {
-        // Si no hay sesión, mostramos botones de auth
+        
       if (authLinks) authLinks.classList.remove('d-none');
         if (userLinks) userLinks.classList.add('d-none');
         if (userNameDisplay) userNameDisplay.textContent = "";
     }
 }
 
-// ============ INICIALIZACIÓN AL CARGAR EL DOCUMENTO ============
+
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Cargar productos dinámicos (automáticamente se cargan datos iniciales si no existen)
+    
     cargarProductosDinamicos();
     console.log('✅ Productos dinámicos cargados. Inventario:', StorageManager.getInventario());
     
-    // 2. Manejar formulario de registro
+    
     const registerForm = document.querySelector('#registerModal form');
     
     if (registerForm) {
@@ -205,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
         usuariosGuardados.push(userData);
         localStorage.setItem('usuarios', JSON.stringify(usuariosGuardados));
 
-        // --- NUEVO: Guardar en 'usuariosRegistrados' para admin ---
+        
         const clientesGuardados = JSON.parse(localStorage.getItem('usuariosRegistrados')) || [];
         const maxId = clientesGuardados.length > 0 ? Math.max(...clientesGuardados.map(c => c.id)) : 0;
         
@@ -228,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Manejar formulario de login
+  
     const loginForm = document.querySelector('#loginModal form');
     
     if (loginForm) {
@@ -267,10 +299,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 4. Actualizar navbar
+    
     actualizarNavbar();
 
-    // 5. Manejar botón de logout
+    
     const btnLogoutMain = document.getElementById('btnLogoutMain');
     if (btnLogoutMain) {
         btnLogoutMain.addEventListener('click', (e) => {
@@ -283,13 +315,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 6. CARRITO: cantidad, agregar y renderizar en modal
+    
 
 function getCartKey() {
     const email = sessionStorage.getItem('emailUsuarioActual');
     
     return email ? `magia_cart_${email}` : 'magia_cart_invitado';
 }
+
+
+function renderProductsFromInventario() {
+    const container = document.getElementById('productosContainer');
+    if (!container) return;
+
+    const inventario = JSON.parse(localStorage.getItem('miInventario') || 'null');
+    if (!inventario || inventario.length === 0) return; 
+    let html = '';
+    inventario.forEach((prod, idx) => {
+        const precio = Number(prod.precio) || 0;
+        const fallback = `../Imagenes/${defaultPool[idx % defaultPool.length]}`;
+        const imgSrc = resolveProductImage(prod, fallback);
+        console.log('[productosInventario] imagen resuelta =>', prod.nombre, imgSrc);
+        const descripcion = prod.descripcion || '';
+        html += `
+            <div class="item" data-product-id="${prod.id}">
+                <p>${prod.nombre}</p>
+                <img src="${imgSrc}" alt="${prod.nombre}" onerror="this.onerror=null;this.src='../Imagenes/flowerOne.jpg';">
+                <div class="product-desc" style="margin:0.5rem 0; color:#fff; font-size:0.9rem;">${descripcion}</div>
+                <div class="product-controls">
+                    <select class="form-control qty-select custom-input">
+                        <option value="1">1 semilla - ${precio.toLocaleString()} COP</option>
+                        <option value="3">3 semillas - ${Math.round(precio * 3).toLocaleString()} COP</option>
+                        <option value="5">5 semillas - ${Math.round(precio * 5).toLocaleString()} COP</option>
+                        <option value="10">10 semillas - ${Math.round(precio * 10).toLocaleString()} COP</option>
+                        <option value="25">25 semillas - ${Math.round(precio * 25).toLocaleString()} COP</option>
+                        <option value="100">100 semillas - ${Math.round(precio * 100).toLocaleString()} COP</option>
+                    </select>
+                    <button type="button" class="btn custom-btn add-to-cart">Agregar al carrito</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
 
     function getCart() {
         const key = getCartKey();
@@ -299,6 +369,46 @@ function getCartKey() {
     function saveCart(cart) {
         const key = getCartKey();
         localStorage.setItem(key, JSON.stringify(cart));
+        
+        syncPendingPedidoFromCart(cart);
+    }
+
+    
+    function syncPendingPedidoFromCart(cart) {
+        const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
+        const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+
+       
+        const idx = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
+
+        if (!cart || cart.length === 0) {
+           
+            if (idx !== -1) {
+                pedidos.splice(idx, 1);
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+            }
+            return;
+        }
+
+        const totalQty = cart.reduce((s, it) => s + Number(it.qty), 0);
+        const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
+        const pedidoObj = {
+            id: idx !== -1 ? pedidos[idx].id : (Date.now().toString()),
+            email: email,
+            items: cart,
+            qty: totalQty,
+            total: totalPrice,
+            fecha: new Date().toISOString(),
+            estado: 'pendiente'
+        };
+
+        if (idx !== -1) {
+            pedidos[idx] = pedidoObj;
+        } else {
+            pedidos.push(pedidoObj);
+        }
+
+        localStorage.setItem('pedidos', JSON.stringify(pedidos));
     }
 
     function updateBadge() {
@@ -346,7 +456,7 @@ function getCartKey() {
             container.appendChild(div);
         });
 
-        // --- Eventos para cambiar cantidad ---
+      
         container.querySelectorAll('.change-qty').forEach(btn => {
             btn.addEventListener('click', function() {
                 const id = this.dataset.id;
@@ -367,7 +477,7 @@ function getCartKey() {
             });
         });
 
-        // --- Evento para eliminar ---
+        
         container.querySelectorAll('.remove-item').forEach(btn => {
             btn.addEventListener('click', function () {
                 const id = this.dataset.id;
@@ -380,7 +490,7 @@ function getCartKey() {
         });
     }
 
-    // Handle add-to-cart with select option
+    
     document.addEventListener('click', function (e) {
         const addBtn = e.target.closest('.add-to-cart');
         if (addBtn) {
@@ -397,7 +507,29 @@ function getCartKey() {
             const imgEl = card ? card.querySelector('img') : null;
             const img = imgEl ? imgEl.src : '';
 
-            // Build item object
+          
+            const productId = card ? card.dataset.productId : null;
+            const cart = getCart();
+
+            
+            let unitPrice = 0;
+            try {
+                const inv = JSON.parse(localStorage.getItem('miInventario') || '[]');
+                if (productId) {
+                    const prod = inv.find(p => String(p.id) === String(productId));
+                    if (prod) unitPrice = Number(prod.precio) || 0;
+                }
+                if (!unitPrice) {
+                    const opt = qtySelect ? qtySelect.selectedOptions[0].textContent : '';
+                    const m = opt.match(/([0-9\.,]+)/g);
+                    if (m && m.length) {
+                        // tomar el último grupo (precio)
+                        const raw = m[m.length - 1].replace(/\./g, '').replace(/,/g, '');
+                        unitPrice = Number(raw) / Math.max(1, Number(qty));
+                    }
+                }
+            } catch (err) { unitPrice = 0; }
+
             const itemObj = {
                 id: Date.now().toString() + Math.floor(Math.random()*1000),
                 title: title.trim(),
@@ -405,9 +537,14 @@ function getCartKey() {
                 img: img
             };
 
-            // Merge if same title exists
-            const cart = getCart();
-            const existing = cart.find(i => i.title === itemObj.title && i.img === itemObj.img);
+          
+            let existing = null;
+            if (itemObj.productId) {
+                existing = cart.find(i => i.productId === itemObj.productId);
+            } else {
+                existing = cart.find(i => i.title === itemObj.title && i.img === itemObj.img);
+            }
+
             if (existing) {
                 existing.qty = Number(existing.qty) + Number(itemObj.qty);
             } else {
@@ -417,7 +554,7 @@ function getCartKey() {
             renderCart();
             updateBadge();
 
-            // show modal
+          
             const cartModalEl = document.getElementById('cartModal');
             if (cartModalEl) {
                 const cartModal = new bootstrap.Modal(cartModalEl);
@@ -427,7 +564,64 @@ function getCartKey() {
         }
     });
 
-    // Initialize
+   
+    renderProductsFromInventario();
+  
+    const checkoutBtnEl = document.getElementById('checkoutBtn');
+    if (checkoutBtnEl) {
+            checkoutBtnEl.addEventListener('click', function() {
+            const cart = getCart();
+            if (!cart || cart.length === 0) {
+                alert('No hay productos en el carrito.');
+                return;
+            }
+
+            const totalQty = cart.reduce((s, it) => s + Number(it.qty), 0);
+            const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
+            const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+            const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
+
+            
+            const idxPend = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
+            if (idxPend !== -1) {
+                pedidos[idxPend].items = cart;
+                pedidos[idxPend].qty = totalQty;
+                pedidos[idxPend].total = totalPrice;
+                pedidos[idxPend].fecha = new Date().toISOString();
+                pedidos[idxPend].estado = 'completado';
+            } else {
+                const nuevoPedido = {
+                    id: Date.now().toString(),
+                    email: email,
+                    items: cart,
+                    qty: totalQty,
+                    total: totalPrice,
+                    fecha: new Date().toISOString(),
+                    estado: 'completado'
+                };
+                pedidos.push(nuevoPedido);
+            }
+
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+          
+            const ventasActual = parseFloat(localStorage.getItem('ventasMes') || '0') || 0;
+            localStorage.setItem('ventasMes', String(ventasActual + totalPrice));
+
+           
+            saveCart([]); 
+            renderCart();
+            updateBadge();
+
+          
+            const cartModalEl = document.getElementById('cartModal');
+            const cartModalInst = cartModalEl ? bootstrap.Modal.getInstance(cartModalEl) : null;
+            if (cartModalInst) cartModalInst.hide();
+
+            alert('Pedido realizado correctamente. Gracias por tu compra.');
+        });
+    }
+
     renderCart();
     updateBadge();
 });
