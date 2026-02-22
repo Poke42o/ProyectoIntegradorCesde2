@@ -7,12 +7,9 @@ const datosIniciales = [
     { id: 5, nombre: "Blue Dream", stock: 42, precio: 25000, estado: "Activo", imagen: "flowerFive.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." },
     { id: 6, nombre: "Girl Scout Cookies", stock: 12, precio: 25000, estado: "Poco Stock", imagen: "flowerSix.jpg", descripcion: "Genética estable de primera generación. Ideales para proyectos de crianza o selección." }
 ];
-
-
 const StorageManager = {
     getInventario: () => {
         let inventario = JSON.parse(localStorage.getItem('miInventario')) || [];
-        
         if (inventario.length === 0) {
             inventario = datosIniciales;
             localStorage.setItem('miInventario', JSON.stringify(inventario));
@@ -21,26 +18,18 @@ const StorageManager = {
     },
     setInventario: (data) => localStorage.setItem('miInventario', JSON.stringify(data))
 };
-
-
 function resolveProductImage(prod, fallback = '../Imagenes/flowerOne.jpg') {
     if (!prod) return fallback;
-
-   
     if (prod.img) {
         if (typeof prod.img === 'string' && prod.img.startsWith('data:')) return prod.img;
         if (typeof prod.img === 'string' && (prod.img.startsWith('/') || prod.img.startsWith('http'))) return prod.img;
         return `../Imagenes/${prod.img}`;
     }
-
-    
     if (prod.imagen) {
         if (typeof prod.imagen === 'string' && prod.imagen.startsWith('data:')) return prod.imagen;
         if (typeof prod.imagen === 'string' && (prod.imagen.startsWith('/') || prod.imagen.startsWith('http'))) return prod.imagen;
         return `../Imagenes/${prod.imagen}`;
     }
-
-
     if (Array.isArray(prod.imagenes) && prod.imagenes.length) {
         const first = prod.imagenes[0];
         if (typeof first === 'string' && first.startsWith('data:')) return first;
@@ -50,27 +39,16 @@ function resolveProductImage(prod, fallback = '../Imagenes/flowerOne.jpg') {
 
     return fallback;
 }
-
-
 const defaultPool = ['flowerOne.jpg','flowerTwo.jpg','flowerThree.jpg','flowerFour.jpg','flowerFive.jpg','flowerSix.jpg'];
-
-
 function cargarProductosDinamicos() {
     const contenedor = document.getElementById('productosDinamicos');
     if (!contenedor) return;
-    
-   
     let productos = StorageManager.getInventario();
-    
-    
     if (productos.length === 0) {
         contenedor.innerHTML = '<p class="text-muted">No hay productos disponibles en este momento</p>';
         return;
     }
-    
-   
     contenedor.innerHTML = productos.map((prod, idx) => {
-        
         const fallback = `../Imagenes/${defaultPool[idx % defaultPool.length]}`;
         const imgSrc = resolveProductImage(prod, fallback);
         console.log('[productosDinamicos] imagen resuelta =>', prod.nombre, imgSrc);
@@ -95,8 +73,6 @@ function cargarProductosDinamicos() {
             </div>
         `;
     }).join('');
-    
-    
     document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.addEventListener('click', agregarAlCarritoDinamico);
     });
@@ -135,8 +111,6 @@ function agregarAlCarritoDinamico(e) {
     }
 
     localStorage.setItem(cartKey, JSON.stringify(carrito));
-    
-    
     const cartCount = document.querySelector('.cart-count');
     if (cartCount) {
         const totalItems = carrito.reduce((sum, item) => sum + item.unidades, 0);
@@ -146,10 +120,6 @@ function agregarAlCarritoDinamico(e) {
 
     alert(`${productName} agregado al carrito`);
 }
-
-
-
-
 function togglePassword(inputId, iconSpan) {
     const input = document.getElementById(inputId);
     const icon = iconSpan.querySelector("i");
@@ -164,17 +134,12 @@ function togglePassword(inputId, iconSpan) {
       icon.classList.add("bi-eye");
     }
 }
-
-
 function actualizarNavbar() {
     const authLinks = document.getElementById('auth-links');
     const userLinks = document.getElementById('user-links');
     const userNameDisplay = document.getElementById('userNameDisplay');
     const sesion = sessionStorage.getItem('sesionActiva');
-   
-
     if (sesion) {
-        
         if (authLinks) authLinks.classList.add('d-none');
         if (userLinks) userLinks.classList.remove('d-none');
 
@@ -183,23 +148,16 @@ function actualizarNavbar() {
         } else{
             const nombre = sessionStorage.getItem('nombreUsuarioActual')
             userNameDisplay.textContent = `Hola, ${nombre || 'Usuario'}`;
-        } 
-        
+        }
     } else {
-        
-      if (authLinks) authLinks.classList.remove('d-none');
+        if (authLinks) authLinks.classList.remove('d-none');
         if (userLinks) userLinks.classList.add('d-none');
         if (userNameDisplay) userNameDisplay.textContent = "";
     }
 }
-
-
 document.addEventListener('DOMContentLoaded', function() {
-    
     cargarProductosDinamicos();
     console.log('✅ Productos dinámicos cargados. Inventario:', StorageManager.getInventario());
-    
-    
     const registerForm = document.querySelector('#registerModal form');
     
     if (registerForm) {
@@ -259,8 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
         registerForm.reset();
         });
     }
-
-  
     const loginForm = document.querySelector('#loginModal form');
     
     if (loginForm) {
@@ -274,35 +230,23 @@ document.addEventListener('DOMContentLoaded', function() {
             if (emailLogin === 'magiaepigea@gmail.com' && passLogin === 'Magia391634*') {
                 alert("¡Hola! Redirigiendo al Panel de Control");
                 sessionStorage.setItem('sesionActiva', 'admin')
-                window.location.href = 'admin.html'; 
-                return; 
-            }  
-
+                window.location.href = 'admin.html';
+                return;
+            }
        const listaUsuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
        const usuarioEncontrado = listaUsuarios.find(u => u.email === emailLogin && u.password === passLogin);
-       
-
-            if (usuarioEncontrado) {
-             
+       if (usuarioEncontrado) {
                     alert(`¡Bienvenido de nuevo, ${usuarioEncontrado.nombre}!`);
                     sessionStorage.setItem('sesionActiva', 'usuario');
                     sessionStorage.setItem('nombreUsuarioActual', usuarioEncontrado.nombre)
-                    
                     sessionStorage.setItem('emailUsuarioActual', usuarioEncontrado.email);
-
-                    // Redirige al usuario normal al index.html
-                    window.location.href = 'index.html'; 
+                    window.location.href = 'index.html';
                 } else {
                     alert('Correo o contraseña incorrectos.');
                 }
-            
         });
     }
-    
-    
     actualizarNavbar();
-
-    
     const btnLogoutMain = document.getElementById('btnLogoutMain');
     if (btnLogoutMain) {
         btnLogoutMain.addEventListener('click', (e) => {
@@ -314,22 +258,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    
-
 function getCartKey() {
     const email = sessionStorage.getItem('emailUsuarioActual');
-    
     return email ? `magia_cart_${email}` : 'magia_cart_invitado';
 }
-
-
 function renderProductsFromInventario() {
     const container = document.getElementById('productosContainer');
     if (!container) return;
 
     const inventario = JSON.parse(localStorage.getItem('miInventario') || 'null');
-    if (!inventario || inventario.length === 0) return; 
+    if (!inventario || inventario.length === 0) return;
     let html = '';
     inventario.forEach((prod, idx) => {
         const precio = Number(prod.precio) || 0;
@@ -360,7 +298,6 @@ function renderProductsFromInventario() {
     container.innerHTML = html;
 }
 
-
     function getCart() {
         const key = getCartKey();
         return JSON.parse(localStorage.getItem(key) || '[]');
@@ -369,27 +306,19 @@ function renderProductsFromInventario() {
     function saveCart(cart) {
         const key = getCartKey();
         localStorage.setItem(key, JSON.stringify(cart));
-        
         syncPendingPedidoFromCart(cart);
     }
-
-    
     function syncPendingPedidoFromCart(cart) {
         const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
         const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
-
-       
         const idx = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
-
         if (!cart || cart.length === 0) {
-           
             if (idx !== -1) {
                 pedidos.splice(idx, 1);
                 localStorage.setItem('pedidos', JSON.stringify(pedidos));
             }
             return;
         }
-
         const totalQty = cart.reduce((s, it) => s + Number(it.qty), 0);
         const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
         const pedidoObj = {
@@ -419,8 +348,7 @@ function renderProductsFromInventario() {
         if (total > 0) { badge.style.display = 'inline-block'; badge.textContent = total; }
         else { badge.style.display = 'none'; }
     }
-
-   function renderCart() {
+    function renderCart() {
         const container = document.getElementById('cartItems');
         if (!container) return;
         const cart = getCart();
@@ -455,8 +383,6 @@ function renderProductsFromInventario() {
                 </div>`;
             container.appendChild(div);
         });
-
-      
         container.querySelectorAll('.change-qty').forEach(btn => {
             btn.addEventListener('click', function() {
                 const id = this.dataset.id;
@@ -476,8 +402,6 @@ function renderProductsFromInventario() {
                 }
             });
         });
-
-        
         container.querySelectorAll('.remove-item').forEach(btn => {
             btn.addEventListener('click', function () {
                 const id = this.dataset.id;
@@ -489,8 +413,6 @@ function renderProductsFromInventario() {
             });
         });
     }
-
-    
     document.addEventListener('click', function (e) {
         const addBtn = e.target.closest('.add-to-cart');
         if (addBtn) {
@@ -506,12 +428,8 @@ function renderProductsFromInventario() {
             const qty = qtySelect ? Math.max(1, parseInt(qtySelect.value)||1) : 1;
             const imgEl = card ? card.querySelector('img') : null;
             const img = imgEl ? imgEl.src : '';
-
-          
             const productId = card ? card.dataset.productId : null;
             const cart = getCart();
-
-            
             let unitPrice = 0;
             try {
                 const inv = JSON.parse(localStorage.getItem('miInventario') || '[]');
@@ -523,28 +441,23 @@ function renderProductsFromInventario() {
                     const opt = qtySelect ? qtySelect.selectedOptions[0].textContent : '';
                     const m = opt.match(/([0-9\.,]+)/g);
                     if (m && m.length) {
-                        // tomar el último grupo (precio)
                         const raw = m[m.length - 1].replace(/\./g, '').replace(/,/g, '');
                         unitPrice = Number(raw) / Math.max(1, Number(qty));
                     }
                 }
             } catch (err) { unitPrice = 0; }
-
             const itemObj = {
                 id: Date.now().toString() + Math.floor(Math.random()*1000),
                 title: title.trim(),
                 qty: Number(qty),
                 img: img
             };
-
-          
             let existing = null;
             if (itemObj.productId) {
                 existing = cart.find(i => i.productId === itemObj.productId);
             } else {
                 existing = cart.find(i => i.title === itemObj.title && i.img === itemObj.img);
             }
-
             if (existing) {
                 existing.qty = Number(existing.qty) + Number(itemObj.qty);
             } else {
@@ -553,8 +466,6 @@ function renderProductsFromInventario() {
             saveCart(cart);
             renderCart();
             updateBadge();
-
-          
             const cartModalEl = document.getElementById('cartModal');
             if (cartModalEl) {
                 const cartModal = new bootstrap.Modal(cartModalEl);
@@ -563,10 +474,7 @@ function renderProductsFromInventario() {
             return;
         }
     });
-
-   
     renderProductsFromInventario();
-  
     const checkoutBtnEl = document.getElementById('checkoutBtn');
     if (checkoutBtnEl) {
             checkoutBtnEl.addEventListener('click', function() {
@@ -580,8 +488,6 @@ function renderProductsFromInventario() {
             const totalPrice = cart.reduce((s, it) => s + (Number(it.unitPrice || 0) * Number(it.qty || 0)), 0);
             const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
             const email = sessionStorage.getItem('emailUsuarioActual') || 'invitado';
-
-            
             const idxPend = pedidos.findIndex(p => p.email === email && p.estado === 'pendiente');
             if (idxPend !== -1) {
                 pedidos[idxPend].items = cart;
@@ -603,12 +509,8 @@ function renderProductsFromInventario() {
             }
 
             localStorage.setItem('pedidos', JSON.stringify(pedidos));
-
-          
             const ventasActual = parseFloat(localStorage.getItem('ventasMes') || '0') || 0;
             localStorage.setItem('ventasMes', String(ventasActual + totalPrice));
-
-           
             saveCart([]); 
             renderCart();
             updateBadge();
